@@ -1,0 +1,6 @@
+frontend/
+*.env
+*.bat
+backend/node_modules/
+# Local Netlify folder
+.netlify

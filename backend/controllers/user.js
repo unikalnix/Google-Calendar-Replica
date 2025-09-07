@@ -49,7 +49,6 @@ const signup = async (req, res) => {
     });
 
     const token = generateToken({ id: user._id, email: user.email });
-    console.log(token);
 
     res.cookie("token", token, {
       httpOnly: true,
