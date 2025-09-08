@@ -2,15 +2,22 @@ import notificationsModel from "../models/notifications.js";
 import userModel from "../models/user.js";
 import mongoose from "mongoose";
 
-// This is the notification function which creates a new document in database of notification for deleting a shared calendar
-const deleteNotification = async (emails, calName, ownerName, calColor) => {
+const createNotification = async (userIds, calColor, message) => {
+  const users = await userModel.find(
+    { _id: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) } },
+    "email"
+  );
+  const participants = users.map((u) => ({
+    email: u.email,
+    unread: true,
+  }));
   const notification = await notificationsModel.create({
-    emails,
+    participants,
     type: "notify",
     title: "Calendar Update",
-    message: `The calendar "${calName}" has been deleted by the owner (${ownerName}).`,
+    message,
     notifiedTime: new Date(),
-    unread: false,
+    unread: true,
     color: calColor,
   });
 
@@ -21,7 +28,7 @@ const getNotifications = async (req, res) => {
   try {
     const payload = req.user;
     const notifications = await notificationsModel.find({
-      emails: payload.email,
+      "participants.email": payload.email,
     });
 
     if (!notifications) {
@@ -30,11 +37,31 @@ const getNotifications = async (req, res) => {
         message: "No new Notification",
       });
     }
+
+    const finalNotificationsArray = notifications
+      .map((n) => {
+        const participant = n.participants.find(
+          (p) => p.email === payload.email
+        );
+        if (!participant) return null; // so the filter removes it - that's a falsy value 
+        return {
+          _id: n._id,
+          email: participant.email,
+          unread: participant.unread,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          notifiedTime: n.notifiedTime,
+          color: n.color,
+        };
+      })
+      .filter(Boolean); // removes falsy valyes from mapped array
+
     return res.json({
       success: true,
       message: "All notifications fetched successfully",
       length: notifications.length,
-      notifications,
+      notifications: finalNotificationsArray,
     });
   } catch (error) {
     return res.json({
@@ -49,20 +76,26 @@ const setNotificationStatus = async (req, res) => {
     const id = req.params;
     const payload = req.user;
 
-    const user = await userModel.findOne({
-      _id: payload.id,
-      email: payload.email,
-    });
-    if (!user) {
-      return res.json({ success: false, message: "Something went wrong" });
-    }
+    const notificationDocument = await notificationsModel.findById(
+      new mongoose.Types.ObjectId(id)
+    );
 
-    const notificationDocument = await notificationsModel.findById(new mongoose.Types.ObjectId(id));
     if (!notificationDocument) {
       res.json({ success: false, message: "Notification is not found" });
     }
 
-    notificationDocument.unread = false;
+    const participant = notificationDocument.participants.find(
+      (p) => p.email === payload.email
+    );
+
+    if (!participant) {
+      return res.json({
+        success: false,
+        message: "You are not a participant of this notification",
+      });
+    }
+
+    participant.unread = false;
     await notificationDocument.save();
 
     return res.json({ success: true, message: "Read status updated" });
@@ -71,4 +104,4 @@ const setNotificationStatus = async (req, res) => {
   }
 };
 
-export { deleteNotification, getNotifications, setNotificationStatus };
+export { createNotification, getNotifications, setNotificationStatus };

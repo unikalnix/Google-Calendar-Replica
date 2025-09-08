@@ -4,7 +4,6 @@ const CalendarSchema = mongoose.Schema(
   {
     name: {
       type: String,
-      unique: true,
       trim: true,
     },
     color: {

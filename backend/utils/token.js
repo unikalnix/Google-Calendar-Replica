@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-function generateToken(payload) {
+async function generateToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET_KEY);
 }
 

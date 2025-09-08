@@ -48,8 +48,7 @@ const signup = async (req, res) => {
       password: hashedPassword,
     });
 
-    const token = generateToken({ id: user._id, email: user.email });
-
+    const token = await generateToken({ id: user._id, email: user.email });
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
@@ -103,12 +102,12 @@ const login = async (req, res) => {
       return res.json({ success: false, message: "Invalid password" });
     }
 
-    const token = generateToken({ id: user._id, email: user.email });
+    const token = await generateToken({ id: user._id, email: user.email });
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      maxAge: 24 * 60 * 60 * 1000, 
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     return res.json({
@@ -120,7 +119,6 @@ const login = async (req, res) => {
         name: user.name,
       },
     });
-    
   } catch (error) {
     console.error("Login Error:", error);
     return res.json({
