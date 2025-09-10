@@ -14,7 +14,6 @@ const notificationsSchema = new Schema(
     message: { type: String },
     notifiedTime: { type: Date },
 
-    unread: { type: Boolean, default: false },
     color: { type: String, default: "#2463EB" }, // blue,
   },
   { timestamps: true }

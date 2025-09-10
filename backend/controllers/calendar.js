@@ -98,9 +98,16 @@ const readAll = async (req, res) => {
       return res.json({ success: false, message: "Something went wrong" });
     }
 
-    const calendars = await calendarModel
-      .find({ _id: { $in: user.calendars } })
-      .select("-owner -autoRemove");
+    const calendars = await calendarModel.find({
+      _id: { $in: user.calendars },
+    });
+
+    const updatedCalendars = calendars.map((c) => {
+      return {
+        ...c.toObject(),
+        owner: payload.email,
+      };
+    });
 
     if (calendars.length === 0) {
       return res.json({ success: false, message: "No calendars found" });
@@ -109,7 +116,7 @@ const readAll = async (req, res) => {
     return res.json({
       success: true,
       message: "All calendars fetched successfully",
-      calendars,
+      calendars: updatedCalendars,
       length: calendars.length,
     });
   } catch (error) {
@@ -163,4 +170,183 @@ const deleteOne = async (req, res) => {
   }
 };
 
-export { create, readAll, deleteOne, readAllShared };
+const shareCalendar = async (req, res) => {
+  try {
+    const { email, role } = req.body;
+    const { id: calId } = req.params;
+
+    if (!email) {
+      return res.json({ success: false, message: "Email required" });
+    }
+
+    const calendar = await calendarModel.findById(calId);
+    if (!calendar) {
+      return res.json({ return: false, message: "Calendar not found" });
+    }
+
+    const isUser = await userModel.findOne({ email: email });
+    if (!isUser) {
+      return res.json({ success: false, message: "User is not registered" });
+    }
+
+    const isCalAlreadyShared = calendar.sharedWith.find(
+      (f) => f.email === email
+    );
+    if (isCalAlreadyShared) {
+      return res.json({
+        success: false,
+        message: `User already participant of the calendar as ${isCalAlreadyShared.role}`,
+      });
+    }
+
+    if (!calendar.isShared) calendar.isShared = true;
+    calendar.sharedWith.push({ email, role });
+
+    await calendar.save();
+    const owner = await userModel.findOne({ _id: calendar.owner });
+    sendNotificationToUsers(
+      isUser._id.toString(),
+      calendar,
+      owner.name,
+      "shared"
+    );
+
+    return res.json({
+      success: true,
+      message: `You shared ${calendar.name} to ${email} as ${role}`,
+    });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+const updateRole = async (req, res) => {
+  try {
+    const { role } = req.query;
+    const payload = req.user;
+    const { id } = req.body;
+
+    if (!role) {
+      return res.json({ success: false, message: "Role is not defined" });
+    }
+    const calendar = await calendarModel.findOne({ owner: payload.id });
+    if (!calendar) {
+      return res.json({ success: false, message: "Calendar not found" });
+    }
+
+    const found = calendar.sharedWith.find((u) => String(u._id) === String(id));
+    if (!found) {
+      return res.json({
+        success: false,
+        message: "Calendar is not shared with the user",
+      });
+    }
+
+    found.role = role;
+
+    await calendar.save();
+
+    return res.json({ success: true, message: `Role updated to ${role}` });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+const removeParticipant = async (req, res) => {
+  try {
+    const { id: cid } = req.params;
+    const { pEmail } = req.body;
+
+    const calendar = await calendarModel.findById(cid);
+    if (!calendar) {
+      return res.json({ success: false, message: "Calendar not found" });
+    }
+
+    const p = calendar.sharedWith.find((f) => f.email === pEmail);
+    if (!p) {
+      return res.json({
+        success: false,
+        message: "Participant already removed",
+      });
+    }
+
+    let removedUser = null;
+
+    const updatedParticipants = calendar.sharedWith.filter((s) => {
+      if (s.email === pEmail) {
+        removedUser = s;
+        return false;
+      }
+      return true;
+    });
+
+    calendar.sharedWith = updatedParticipants;
+
+    const { name: ownerName } = await userModel.findById(calendar.owner).lean();
+    removedUser = await userModel.findOne({ email: removedUser.email });
+
+    if (removedUser) {
+      let response = await sendNotificationToUsers(
+        removedUser._id,
+        calendar,
+        ownerName,
+        "removed"
+      );
+
+      if (!response.success) {
+        return res.json(response);
+      }
+    }
+
+    await calendar.save();
+    return res.json({
+      success: true,
+      message: "Participant removed successfully",
+    });
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+const getParticipants = async (req, res) => {
+  try {
+    console.log("Request reached");
+    const { id } = req.params; // calendar id
+
+    const calendar = await calendarModel.findById(id);
+    const participantEmails = calendar.sharedWith.map((s) => s.email);
+
+    const participants = await userModel
+      .find({ email: { $in: participantEmails } })
+      .select("name email");
+
+    if (participants.length === 0)
+      return res.json({
+        success: false,
+        message:
+          "No participants found. This calendar has not been shared with anyone yet.",
+      });
+
+    res.json({
+      success: true,
+      message: "",
+      participants,
+      length: participants.length,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+export {
+  create,
+  readAll,
+  deleteOne,
+  readAllShared,
+  shareCalendar,
+  updateRole,
+  removeParticipant,
+  getParticipants,
+};

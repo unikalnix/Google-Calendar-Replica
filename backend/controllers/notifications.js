@@ -2,26 +2,51 @@ import notificationsModel from "../models/notifications.js";
 import userModel from "../models/user.js";
 import mongoose from "mongoose";
 
-const createNotification = async (userIds, calColor, message) => {
-  const users = await userModel.find(
-    { _id: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) } },
-    "email"
-  );
-  const participants = users.map((u) => ({
-    email: u.email,
-    unread: true,
-  }));
-  const notification = await notificationsModel.create({
-    participants,
-    type: "notify",
-    title: "Calendar Update",
-    message,
-    notifiedTime: new Date(),
-    unread: true,
-    color: calColor,
-  });
+const createNotification = async (userIds, cal, message) => {
+  if (!Array.isArray(userIds)) {
+    const user = await userModel.findOne({_id:userIds});
 
-  return notification;
+    if (!user) {
+      return { success: false, message: "User not found" };
+    }
+    const participant = { email: user.email, unread: true };
+
+    const notification = await notificationsModel.create({
+      participants: participant,
+      type: "notify",
+      title: "Calendar Update",
+      message,
+      notifiedTime: new Date(),
+    });
+
+    let n = notification.toObject();
+    n["success"] = true;
+    console.log(n)
+    return n;
+  } else {
+    const users = await userModel.find(
+      { _id: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) } },
+      "email"
+    );
+    const participants = users.map((u) => ({
+      email: u.email,
+      unread: true,
+    }));
+
+    const notification = await notificationsModel.create({
+      participants,
+      type: "notify",
+      title: "Calendar Update",
+      message,
+      notifiedTime: new Date(),
+      color: cal.color,
+    });
+    
+    
+    let n = notification.toObject();
+    n["success"] = true;
+    return n;
+  }
 };
 
 const getNotifications = async (req, res) => {
@@ -43,7 +68,7 @@ const getNotifications = async (req, res) => {
         const participant = n.participants.find(
           (p) => p.email === payload.email
         );
-        if (!participant) return null; // so the filter removes it - that's a falsy value 
+        if (!participant) return null; // so the filter removes it - that's a falsy value
         return {
           _id: n._id,
           email: participant.email,

@@ -16,7 +16,7 @@ const sendNotificationToUser = (userId, notification) => {
   }
 };
 
-const sendNotificationToUsers = (
+const sendNotificationToUsers = async (
   userIds,
   cal,
   ownerName,
@@ -28,7 +28,7 @@ const sendNotificationToUsers = (
       message = `The calendar "${cal.name}" has been created by ${ownerName}.`;
       break;
     case "shared":
-      message = `The calendar "${cal.name}" has been shared with you by ${ownerName}.`;
+      message = `The calendar "${cal.name}" has been shared with you by ${ownerName}`;
       break;
     case "updated":
       message = `The calendar "${cal.name}" has been updated by ${ownerName}.`;
@@ -36,13 +36,17 @@ const sendNotificationToUsers = (
     case "deleted":
       message = `The calendar "${cal.name}" has been deleted by ${ownerName}.`;
       break;
+    case "removed":
+      message = `${ownerName} removed you from ${cal.name}.`;
+      break;
     default:
       message = `The calendar "${cal.name}" has an update from ${ownerName}.`;
   }
 
-  createNotification(userIds, cal.color, message);
-  userIds.forEach((id) => {
-    sendNotificationToUser(id, {
+  if (!Array.isArray(userIds)) {
+    let res = await createNotification(userIds, cal, message);
+    if (!res.success) return res;
+    sendNotificationToUser(userIds.toString(), {
       _id: new mongoose.Types.ObjectId(),
       type: "notify",
       title: "Calendar Update",
@@ -51,7 +55,22 @@ const sendNotificationToUsers = (
       color: cal.color,
       notifiedTime: new Date(),
     });
-  });
+  } else {
+    createNotification(userIds, cal, message);
+    userIds.forEach((id) => {
+      sendNotificationToUser(id, {
+        _id: new mongoose.Types.ObjectId(),
+        type: "notify",
+        title: "Calendar Update",
+        message,
+        unread: true,
+        color: cal.color,
+        notifiedTime: new Date(),
+      });
+    });
+  }
+
+  return { success: true };
 };
 
 export { sendNotificationToUser, sendNotificationToUsers };

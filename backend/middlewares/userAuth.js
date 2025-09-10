@@ -1,5 +1,4 @@
 import { verifyToken } from "../utils/token.js";
-import mongoose from "mongoose";
 
 async function userAuth(req, res, next) {
   try {
