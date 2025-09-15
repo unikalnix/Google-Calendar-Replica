@@ -1,0 +1,92 @@
+import { createContext, useContext, useState, useEffect } from "react";
+import { useToast } from "./ToastContext";
+import axios from "axios";
+
+const CalendarContext = createContext();
+
+export const CalendarProvider = ({ children }) => {
+  const { setToast } = useToast();
+  const [calendars, setCalendars] = useState([]);
+  const [calErrMsg, setCalErrMsg] = useState("");
+  const [sharedCalErrMsg, setSharedCalErrMsg] = useState("");
+  const [sharedWithMe, setSharedWithMe] = useState([]);
+
+  const getMyCalendars = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/calendar/getMyCalendars`,
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        setCalendars(res.data?.calendars);
+      } else {
+        setCalErrMsg(res.data.message);
+      }
+    } catch (error) {
+      setCalErrMsg(error.message);
+    }
+  };
+
+  const getSharedCalendars = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/calendar/readAllShared`,
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        setSharedWithMe(res.data.sharedWithMe);
+      } else {
+        setSharedCalErrMsg(res.data.message);
+      }
+    } catch (error) {
+      setSharedCalErrMsg(error.message);
+    }
+  };
+
+  const deleteCal = async (id) => {
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/calendar/deleteOne/${id}`,
+        {},
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        setToast(res.data.message, "info");
+        setCalendars((prev) => prev.filter((cal) => cal._id !== id));
+      } else {
+        setToast(res.data.message, "error");
+      }
+    } catch (error) {
+      setToast(error.message, "error");
+    }
+  };
+
+  useEffect(() => {
+    getMyCalendars();
+    getSharedCalendars();
+  }, []);
+
+  useEffect(() => {
+    console.log("Shared with me \n", sharedWithMe);
+  }, [sharedWithMe])
+
+  return (
+    <CalendarContext.Provider
+      value={{
+        calendars,
+        calErrMsg,
+        sharedCalErrMsg,
+        sharedWithMe,
+        getMyCalendars,
+        getSharedCalendars,
+        deleteCal,
+      }}
+    >
+      {children}
+    </CalendarContext.Provider>
+  );
+};
+
+export const useCalendar = () => useContext(CalendarContext);
