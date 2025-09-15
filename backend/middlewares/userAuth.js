@@ -11,9 +11,10 @@ async function userAuth(req, res, next) {
     if (payload === null) {
       return res.json({ success: false, message: "Invalid token" });
     }
-    
-    req.user = payload;
+
+    req.payload = payload;
     req.token = token;
+
     next();
   } catch (error) {
     return res.json({

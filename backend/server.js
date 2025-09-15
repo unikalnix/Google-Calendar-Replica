@@ -1,5 +1,5 @@
-import express from "express";
 import "dotenv/config";
+import express from "express";
 import rateLimit from "express-rate-limit";
 import cors from "cors";
 import helmet from "helmet";
@@ -44,11 +44,12 @@ app.get("/", (_, res) => {
 });
 
 app.get("/check-auth", userAuth, (req, res) => {
-  const payload = req.user;
+  const payload = req.payload;
   return res.json({
     success: true,
     message: "User Authenticated",
     userId: payload.id,
+    userEmail: payload.email
   });
 });
 

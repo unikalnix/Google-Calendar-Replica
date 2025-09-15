@@ -51,7 +51,7 @@ const createNotification = async (userIds, cal, message) => {
 
 const getNotifications = async (req, res) => {
   try {
-    const payload = req.user;
+    const payload = req.payload;
     const notifications = await notificationsModel.find({
       "participants.email": payload.email,
     });
@@ -99,7 +99,7 @@ const getNotifications = async (req, res) => {
 const setNotificationStatus = async (req, res) => {
   try {
     const id = req.params;
-    const payload = req.user;
+    const payload = req.payload;
 
     const notificationDocument = await notificationsModel.findById(
       new mongoose.Types.ObjectId(id)

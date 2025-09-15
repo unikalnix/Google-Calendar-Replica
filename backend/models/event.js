@@ -10,7 +10,12 @@ const eventSchema = new Schema(
       required: true,
     },
     location: { type: String, trim: true },
-    participants: [{ type: String }],
+    participants: [
+      {
+        name: { type: String, trim: true },
+        email: { type: String },
+      },
+    ],
     repeat: {
       type: String,
       enum: ["none", "daily", "weekly", "monthly", "yearly"],
@@ -26,6 +31,7 @@ const eventSchema = new Schema(
       ref: "Calendar",
       required: true,
     },
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );

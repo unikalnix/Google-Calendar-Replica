@@ -40,7 +40,7 @@ const CalendarSchema = mongoose.Schema(
       },
     ],
   },
-  { timeStamps: true }
+  { timestamps: true }
 );
 
 const calendarModel =
