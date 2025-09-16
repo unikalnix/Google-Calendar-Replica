@@ -55,6 +55,9 @@ export const CalendarProvider = ({ children }) => {
       if (res.data.success) {
         setToast(res.data.message, "info");
         setCalendars((prev) => prev.filter((cal) => cal._id !== id));
+        setSharedWithMe((prev) => prev.filter((cal) => cal._id !== id));
+        getMyCalendars();
+        getSharedCalendars();
       } else {
         setToast(res.data.message, "error");
       }
@@ -70,7 +73,7 @@ export const CalendarProvider = ({ children }) => {
 
   useEffect(() => {
     console.log("Shared with me \n", sharedWithMe);
-  }, [sharedWithMe])
+  }, [sharedWithMe]);
 
   return (
     <CalendarContext.Provider
@@ -79,6 +82,7 @@ export const CalendarProvider = ({ children }) => {
         calErrMsg,
         sharedCalErrMsg,
         sharedWithMe,
+        setSharedWithMe,
         getMyCalendars,
         getSharedCalendars,
         deleteCal,

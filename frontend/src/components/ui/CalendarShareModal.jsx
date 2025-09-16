@@ -2,6 +2,7 @@ import axios from "axios";
 import { Copy, X, Users, Share2, Send } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "../../context/ToastContext";
+import { useCalendar } from "../../context/CalendarContext";
 
 function CalendarShareModal({
   calendarToBeShare: cal,
@@ -19,9 +20,9 @@ function CalendarShareModal({
   const [loading, setLoading] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [calendar, setCalendar] = useState(cal);
+  const { getSharedCalendars } = useCalendar();
   const getParticipants = async () => {
     try {
-      console.log(cal._id)
       const res = await axios.get(
         `${
           import.meta.env.VITE_BACKEND_URL
@@ -41,7 +42,7 @@ function CalendarShareModal({
   useEffect(() => {
     getParticipants();
   }, [isShareModalOpen]);
-  
+
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     try {
@@ -59,6 +60,12 @@ function CalendarShareModal({
         setFailureMessage("");
         setSuccessMessage(res.data.message);
         getParticipants();
+        getSharedCalendars();
+        setCalendar((prev) => ({
+          ...prev,
+          sharedWith: [...prev.sharedWith, { email, role }],
+        }));
+        setEmail("");
       } else {
         setSuccessMessage("");
         setFailureMessage(res.data.message);
@@ -84,6 +91,12 @@ function CalendarShareModal({
       if (res.data.success) {
         setFailureMessage("");
         setSuccessMessage(res.data.message);
+        setCalendar((prev) => ({
+          ...prev,
+          sharedWith: prev.sharedWith.map((u) =>
+            u._id === id ? { ...u, role: updatedRole } : u
+          ),
+        }));
       } else {
         setSuccessMessage("");
         setFailureMessage(res.data.message);
@@ -107,6 +120,11 @@ function CalendarShareModal({
         setFailureMessage("");
         setSuccessMessage(res.data.message);
         getParticipants();
+        setCalendar((prev) => ({
+          ...prev,
+          sharedWith: prev.sharedWith.filter((u) => u.email !== pEmail),
+        }));
+        getSharedCalendars();
       } else {
         console.log(res.data);
         setSuccessMessage("");
@@ -122,6 +140,15 @@ function CalendarShareModal({
   }, [updatedRole, id]);
 
   useEffect(() => {}, [cal]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSuccessMessage("");
+      setFailureMessage("");
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -145,30 +172,9 @@ function CalendarShareModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
-          {/* Share Link */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-900 mb-2 mt-4">
-              Share link
-            </h3>
-            <div className="flex gap-2">
-              <input
-                ref={inputRef}
-                onFocus={() => inputRef.current.select()}
-                value="https://calendar.app/shared/1"
-                readOnly
-                className="flex-1 h-10 rounded-md border bg-gray-50 border-gray-200 px-3 py-2 text-sm font-mono"
-              />
-              <button className="h-10 px-3 border rounded-md hover:bg-gray-50 cursor-pointer">
-                <Copy className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Anyone with this link can view the calendar
-            </p>
-          </div>
-
+  
           {/* Invite */}
-          <div>
+          <div className="mt-5">
             <h3 className="text-sm font-medium text-gray-900 mb-2">
               Invite people
             </h3>

@@ -5,7 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { useCalendar } from "../../context/CalendarContext";
 
 export default function CalendarCreationModal({ isOpen, onClose }) {
-  const { getMyCalendars } = useCalendar();
+  const { getMyCalendars, getSharedCalendars } = useCalendar();
   const [calendarName, setCalendarName] = useState("");
   const [selectedColor, setSelectedColor] = useState("#3b82f6");
   const [isShared, setIsShared] = useState(false);
@@ -61,6 +61,7 @@ export default function CalendarCreationModal({ isOpen, onClose }) {
         setFailureMessage("");
         setSuccessMessage(res.data.message);
         getMyCalendars();
+        getSharedCalendars();
         setCalendarName("");
         setSelectedColor("#3b82f6");
         setIsShared(false);

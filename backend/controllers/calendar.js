@@ -369,7 +369,7 @@ const getSharedCalendar = async (req, res) => {
     }
 
     if (role === "none") {
-      return res.status(403).json({
+      return res.json({
         success: false,
         message: "You do not have access to this calendar",
       });
@@ -398,7 +398,7 @@ const getSharedCalendar = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ success: false, message: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };
 

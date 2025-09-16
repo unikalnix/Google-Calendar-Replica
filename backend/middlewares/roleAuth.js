@@ -5,7 +5,7 @@ const roleAuth = (action) => {
       const calendar = req.calendar;
 
       if (!calendar) {
-        return res.status(404).json({
+        return res.json({
           success: false,
           message: "Calendar not found",
         });
@@ -23,7 +23,7 @@ const roleAuth = (action) => {
       }
 
       if (role === "none") {
-        return res.status(403).json({
+        return res.json({
           success: false,
           message: "You do not have access to this calendar",
         });

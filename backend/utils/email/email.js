@@ -1,8 +1,7 @@
 import { createMailgunClient } from "../../config/mailgun.js";
 
 const { mg, domain } = createMailgunClient(
-  process.env,
-  MAILGUN_API_KEY,
+  process.env.MAILGUN_API_KEY,
   process.env.MAILGUN_DOMAIN
 );
 
