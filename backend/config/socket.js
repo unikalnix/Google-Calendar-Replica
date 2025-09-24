@@ -21,6 +21,12 @@ export const initSocket = (server, allowedOrigins) => {
       console.log("Online users:", onlineUsers);
     });
 
+    // Request user for calendar
+    socket.on("request", (userId) => {
+      onlineUsers[userId] = socket.id; 
+      console.log("Online users:", onlineUsers);
+    });
+
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
       for (const userId in onlineUsers) {

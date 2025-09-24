@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Calendar from "./pages/Calendar";
 import Event from "./pages/Event";
+import CalendarSharingRequests from "./pages/CalendarSharingRequests";
 
 const App = () => {
   return (
@@ -17,6 +18,14 @@ const App = () => {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/requests"
+          element={
+            <ProtectedRoute>
+              <CalendarSharingRequests />
             </ProtectedRoute>
           }
         />

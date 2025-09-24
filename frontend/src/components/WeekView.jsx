@@ -26,13 +26,15 @@ const WeekView = () => {
 
   const getEventsForCell = (date, hour) => {
     return events.filter((event) => {
-      const eventDate = new Date(event.startTime);
-      return (
-        eventDate.getFullYear() === date.getFullYear() &&
-        eventDate.getMonth() === date.getMonth() &&
-        eventDate.getDate() === date.getDate() &&
-        eventDate.getHours() === hour
-      );
+      const eventStart = new Date(event.startTime);
+      const eventEnd = new Date(event.endTime || event.startTime);
+
+      const cellStart = new Date(date);
+      cellStart.setHours(hour, 0, 0, 0);
+      const cellEnd = new Date(date);
+      cellEnd.setHours(hour + 1, 0, 0, 0);
+
+      return eventStart < cellEnd && eventEnd >= cellStart;
     });
   };
 
@@ -108,7 +110,10 @@ const WeekView = () => {
                       <div
                         key={event._id}
                         className="text-white text-xs p-1 rounded bg-fill truncate mb-1"
-                        style={{ minHeight: "16px", backgroundColor: event.calendar.color }}
+                        style={{
+                          minHeight: "16px",
+                          backgroundColor: event.calendar.color,
+                        }}
                       >
                         {event.title}
                         <div className="text-[10px] opacity-90">

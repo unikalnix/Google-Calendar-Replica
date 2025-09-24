@@ -1,6 +1,6 @@
 import axios from "axios";
-import { Copy, X, Users, Share2, Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { X, Users, Share2, Send } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useToast } from "../../context/ToastContext";
 import { useCalendar } from "../../context/CalendarContext";
 
@@ -9,7 +9,6 @@ function CalendarShareModal({
   isShareModalOpen,
   onClose,
 }) {
-  const inputRef = useRef(null);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("viewer");
   const [updatedRole, setUpdatedRole] = useState(null);
@@ -21,6 +20,7 @@ function CalendarShareModal({
   const [participants, setParticipants] = useState([]);
   const [calendar, setCalendar] = useState(cal);
   const { getSharedCalendars } = useCalendar();
+
   const getParticipants = async () => {
     try {
       const res = await axios.get(
@@ -30,7 +30,17 @@ function CalendarShareModal({
         { withCredentials: true }
       );
       if (res.data.success) {
-        setParticipants(res.data.participants);
+        const merged = res.data.participants.map((p) => {
+          const shared = cal.sharedWith.find((s) => s.email === p.email);
+          return {
+            userId: p._id, 
+            shareId: shared?._id, 
+            name: p.name,
+            email: p.email,
+            role: shared?.role || "viewer",
+          };
+        });
+        setParticipants(merged);
       } else {
         console.log(res.data.message);
       }
@@ -38,10 +48,6 @@ function CalendarShareModal({
       setToast(error.message, "error");
     }
   };
-
-  useEffect(() => {
-    getParticipants();
-  }, [isShareModalOpen]);
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
@@ -59,12 +65,13 @@ function CalendarShareModal({
       if (res.data.success) {
         setFailureMessage("");
         setSuccessMessage(res.data.message);
-        getParticipants();
         getSharedCalendars();
+        setParticipants((prev) => [...prev, { email, role }]);
         setCalendar((prev) => ({
           ...prev,
           sharedWith: [...prev.sharedWith, { email, role }],
         }));
+        getParticipants();
         setEmail("");
       } else {
         setSuccessMessage("");
@@ -91,6 +98,9 @@ function CalendarShareModal({
       if (res.data.success) {
         setFailureMessage("");
         setSuccessMessage(res.data.message);
+        setParticipants((prev) =>
+          prev.map((u) => (u._id === id ? { ...u, role: updatedRole } : u))
+        );
         setCalendar((prev) => ({
           ...prev,
           sharedWith: prev.sharedWith.map((u) =>
@@ -119,14 +129,14 @@ function CalendarShareModal({
       if (res.data.success) {
         setFailureMessage("");
         setSuccessMessage(res.data.message);
-        getParticipants();
+        setParticipants((prev) => prev.filter((u) => u.email !== pEmail));
         setCalendar((prev) => ({
           ...prev,
           sharedWith: prev.sharedWith.filter((u) => u.email !== pEmail),
         }));
+        getParticipants();
         getSharedCalendars();
       } else {
-        console.log(res.data);
         setSuccessMessage("");
         setFailureMessage(res.data.message);
       }
@@ -139,8 +149,6 @@ function CalendarShareModal({
     updateRole(id);
   }, [updatedRole, id]);
 
-  useEffect(() => {}, [cal]);
-
   useEffect(() => {
     const timer = setTimeout(() => {
       setSuccessMessage("");
@@ -149,6 +157,14 @@ function CalendarShareModal({
 
     return () => clearTimeout(timer);
   });
+
+  useEffect(() => {
+    getParticipants();
+    if (isShareModalOpen && cal) {
+      setParticipants(cal.sharedWith || []);
+      setCalendar(cal);
+    }
+  }, [isShareModalOpen, cal]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -172,7 +188,6 @@ function CalendarShareModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-6">
-  
           {/* Invite */}
           <div className="mt-5">
             <h3 className="text-sm font-medium text-gray-900 mb-2">
@@ -258,8 +273,8 @@ function CalendarShareModal({
             </div>
 
             {/* Other users */}
-            {calendar.sharedWith.length > 0 &&
-              calendar.sharedWith.map((s) => (
+            {participants.length > 0 &&
+              participants.map((s) => (
                 <div
                   key={s.email}
                   className="flex items-center justify-between py-2"
@@ -294,7 +309,7 @@ function CalendarShareModal({
                     <select
                       onChange={(e) => {
                         setUpdatedRole(e.target.value);
-                        setId(s._id.toString());
+                        setId(s.shareId.toString());
                       }}
                       defaultValue={s.role}
                       className="px-2 py-1 outline-none border-1 border-primary rounded-md cursor-pointer"

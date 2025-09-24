@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import { calendar } from "../utils/default.js";
+import User from "../models/user.js";
 
 const CalendarSchema = mongoose.Schema(
   {
@@ -6,44 +8,49 @@ const CalendarSchema = mongoose.Schema(
       type: String,
       trim: true,
     },
+
     color: {
       type: String,
-      default: "#155DFC", // blue
+      default: calendar.color,
     },
+
     isShared: {
       type: Boolean,
-      default: false,
+      default: calendar.isShared,
     },
-    sharedWith: [
-      {
-        email: { type: String },
-        role: {
-          type: String,
-          enum: ["viewer", "editor", "owner"],
-          default: "viewer",
-        },
-      },
-    ],
+    
     autoRemove: {
       type: Boolean,
-      default: false,
+      default: calendar.autoRemove,
     },
+    isDefault:{type:Boolean, default:calendar.isDefault},
     owner: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: User.modelName,
       required: true,
     },
-    events: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Event",
-      },
-    ],
   },
   { timestamps: true }
 );
 
-const calendarModel =
-  mongoose.models.calendarModel || mongoose.model("Calendar", CalendarSchema);
+const Calendar =
+  mongoose.models.Calendar || mongoose.model("Calendar", CalendarSchema);
 
-export default calendarModel;
+const calendarParticipantsSchema = new mongoose.Schema({
+  email: { type: String },
+  role: {
+    type: String,
+    enum: calendar.roles,
+    default: calendar.defaultRole,
+  },
+  calendarId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: Calendar.modelName,
+  },
+});
+
+const CalendarParticipants =
+  mongoose.models.CalendarParticipants ||
+  mongoose.model("CalendarParticipant", calendarParticipantsSchema);
+
+export { Calendar, CalendarParticipants };

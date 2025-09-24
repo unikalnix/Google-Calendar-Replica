@@ -5,8 +5,10 @@ import {
 } from "../utils/password.js";
 import validateEmail from "../utils/emailValidator.js";
 import validateString from "../utils/stringValidator.js";
-import userModel from "../models/user.js";
+import User from "../models/user.js";
 import { generateToken } from "../utils/token.js";
+import { defaultCalendar } from "../utils/default.js";
+import { Calendar } from "../models/calendar.js";
 
 const signup = async (req, res) => {
   try {
@@ -27,7 +29,7 @@ const signup = async (req, res) => {
       return res.json({ success: false, message: "Invalid email format" });
     }
 
-    const existingUser = await userModel.findOne({ email });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.json({
         success: false,
@@ -42,7 +44,7 @@ const signup = async (req, res) => {
 
     const hashedPassword = await hashPassword(password);
 
-    const user = await userModel.create({
+    const user = await User.create({
       name,
       email,
       password: hashedPassword,
@@ -59,6 +61,9 @@ const signup = async (req, res) => {
       sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000,
     });
+
+    defaultCalendar.owner = user._id;
+    await Calendar.create(defaultCalendar);
 
     return res.json({
       success: true,
@@ -93,7 +98,7 @@ const login = async (req, res) => {
       return res.json({ success: false, message: "Invalid email format" });
     }
 
-    const user = await userModel.findOne({ email });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.json({
         success: false,
@@ -136,7 +141,7 @@ const login = async (req, res) => {
   }
 };
 
-const logout = async (req, res) => {
+const logout = async (_, res) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,

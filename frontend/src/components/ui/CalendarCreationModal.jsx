@@ -49,6 +49,7 @@ export default function CalendarCreationModal({ isOpen, onClose }) {
   };
 
   const onCreateCalendar = async (calendarData) => {
+    
     try {
       setLoading(true);
       const res = await axios.post(
