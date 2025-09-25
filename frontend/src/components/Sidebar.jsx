@@ -23,7 +23,7 @@ import { useToast } from "../context/ToastContext";
 import axios from "axios";
 import MakeCalendarRequestModal from "./ui/MakeCalendarRequestModal";
 
-const Sidebar = ({ setCalendarVisibility }) => {
+const Sidebar = ({ setCalendarVisibility, requests }) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(null);
   const [calendarToBeShare, setCalendarToBeShare] = useState({});
   const { userEmail, setAuth } = useAuth();
@@ -49,6 +49,7 @@ const Sidebar = ({ setCalendarVisibility }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen, isMobile]);
+
   return (
     <>
       {isMobile && (
@@ -74,7 +75,6 @@ const Sidebar = ({ setCalendarVisibility }) => {
             : "w-80 bg-white border-r border-gray-200 p-6 flex flex-col"
         }`}
       >
-        {}
         {!isMobile ? (
           <div className="mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
@@ -86,7 +86,8 @@ const Sidebar = ({ setCalendarVisibility }) => {
                 <Bell className="w-4 h-4" />
                 Requests
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  2
+                  {requests &&
+                    requests.filter((r) => r.status === "pending").length}
                 </span>
               </button>
             </div>
@@ -147,7 +148,6 @@ const Sidebar = ({ setCalendarVisibility }) => {
           </div>
         )}
 
-        {}
         {navigation === "Calendar" ? (
           <div
             className={
@@ -308,7 +308,6 @@ const Sidebar = ({ setCalendarVisibility }) => {
           </div>
         ) : null}
 
-        {}
         {!isMobile && (
           <div className="mt-8 h-1/3 overflow-y-scroll">
             <h3 className="text-sm font-medium text-gray-500 mb-4">
@@ -317,7 +316,6 @@ const Sidebar = ({ setCalendarVisibility }) => {
                 ({Array.isArray(sharedWithMe) ? sharedWithMe.length : 0})
               </span>
             </h3>
-            {}
             {Array.isArray(sharedWithMe) &&
               sharedWithMe.length > 0 &&
               sharedWithMe.map((cal, index) => {

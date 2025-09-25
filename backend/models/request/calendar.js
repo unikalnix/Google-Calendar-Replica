@@ -31,16 +31,20 @@ const RequestCalendar =
   mongoose.models.RequestCalendar ||
   mongoose.model("RequestCalendar", requestCalendarSchema);
 
-const requesCalendarHistorySchema = new Schema({
-  status: { type: String, enum: requestCalendar.status },
-  changedBy: { type: mongoose.Schema.Types.ObjectId, ref: User.modelName },
-  changedAt: { type: Date, default: Date.now },
-  request: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: RequestCalendar.modelName,
-    required: true,
+const requesCalendarHistorySchema = new Schema(
+  {
+    status: { type: String, enum: requestCalendar.status },
+    changedBy: { type: mongoose.Schema.Types.ObjectId, ref: User.modelName },
+    requestBy: { type: mongoose.Schema.Types.ObjectId, ref: User.modelName },
+    changedAt: { type: Date, default: Date.now },
+    requestId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: RequestCalendar.modelName,
+      required: true,
+    },
   },
-});
+  { timestamps: true }
+);
 
 const RequestCalendarHistory =
   mongoose.models.RequestCalendarHistory ||

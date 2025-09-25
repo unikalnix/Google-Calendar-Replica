@@ -3,7 +3,6 @@ import { useNotifications } from "../../context/NotificationsContext";
 export default function NotificationsModal() {
   const { notifications, setUnreadToRead, unreadLength } = useNotifications();
 
-  
   const formatDate = (utcDate) => {
     return new Date(utcDate).toLocaleString(undefined, {
       dateStyle: "medium",
@@ -11,7 +10,6 @@ export default function NotificationsModal() {
     });
   };
 
-  console.log(notifications)
 
   return (
     <div className="w-80 bg-white border border-gray-200 rounded-lg shadow-lg">
@@ -23,7 +21,7 @@ export default function NotificationsModal() {
 
       {}
       <div className="max-h-96 overflow-y-auto">
-        {(notifications && notifications.length > 0) ? (
+        {notifications && notifications.length > 0 ? (
           notifications.map((notification, index) => (
             <div
               key={index}
@@ -40,7 +38,9 @@ export default function NotificationsModal() {
                 {}
                 {notification.unread && (
                   <div
-                    style={{ backgroundColor: notification.notificationId.color }}
+                    style={{
+                      backgroundColor: notification.notificationId?.color,
+                    }}
                     className="w-2 h-2 rounded-full mt-2"
                   />
                 )}

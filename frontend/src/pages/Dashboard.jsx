@@ -9,12 +9,18 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import CreateEventModal from "../components/ui/CreateEventModal";
 import { io } from "socket.io-client";
-const SOCKET = io(import.meta.env.VITE_SOCKET_URL, { withCredentials: true });
 
-const Dashboard = () => {
+const Dashboard = ({
+  requests,
+  setRequests,
+  getRequests,
+}) => {
+  const SOCKET = io(import.meta.env.VITE_SOCKET_URL, {
+    withCredentials: true,
+    path: "gcrapp-socket",
+  });
   const isMobile = useIsMobile();
   const [activeView, setActiveView] = useState("month");
-  const [request, setRequest] = useState([]);
   const { isEventModalOpen, events } = useEvent();
   const { userId } = useAuth();
   const [calendarVisibility, setCalendarVisibility] = useState([]);
@@ -32,7 +38,9 @@ const Dashboard = () => {
     }
 
     SOCKET.on("request", (data) => {
-      setRequest((prev) => [data, ...prev].sort((a, b) => b.unread - a.unread));
+      setRequests((prev) =>
+        [data, ...prev].sort((a, b) => b.isRead - a.isRead)
+      );
     });
 
     return () => {
@@ -40,12 +48,19 @@ const Dashboard = () => {
     };
   }, [userId]);
 
-  useEffect(() => console.log(request), [request]);
+  useEffect(() => {
+    getRequests();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className={!isMobile ? "flex h-screen" : "flex flex-col h-screen"}>
-        {!isMobile && <Sidebar setCalendarVisibility={setCalendarVisibility} />}
+        {!isMobile && (
+          <Sidebar
+            requests={requests}
+            setCalendarVisibility={setCalendarVisibility}
+          />
+        )}
 
         <div className="flex flex-col flex-1 overflow-hidden">
           <Topbar activeView={activeView} setActiveView={setActiveView} />
@@ -56,7 +71,12 @@ const Dashboard = () => {
           {activeView === "week" && <WeekView />}
           {activeView === "day" && <DayView />}
         </div>
-        {isMobile && <Sidebar setCalendarVisibility={setCalendarVisibility} />}
+        {isMobile && (
+          <Sidebar
+            requests={requests}
+            setCalendarVisibility={setCalendarVisibility}
+          />
+        )}
       </div>
 
       {isEventModalOpen && <CreateEventModal />}

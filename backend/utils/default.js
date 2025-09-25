@@ -32,5 +32,6 @@ export const requestCalendar = {
   status: ["granted", "pending", "revoked"],
   defaultStatus: "pending",
   defaultType: "general",
-  defaultRead: false
+  defaultRead: false,
+  defaultRole: "viewer"
 };

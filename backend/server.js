@@ -20,7 +20,7 @@ export const allowedOrigins = [
   process.env.VITE_CLIENT_URL,
 ];
 const port = process.env.PORT || 3000;
-
+ 
 (async () => {
   try {
     await connectDB();
@@ -58,6 +58,7 @@ app.get("/check-auth", userAuth, (req, res) => {
     message: "User Authenticated",
     userId: payload.id,
     userEmail: payload.email,
+    userName: payload.name
   });
 });
 

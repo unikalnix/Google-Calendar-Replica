@@ -1,8 +1,7 @@
 import { Server } from "socket.io";
 
-let io;
+let io = null;
 let onlineUsers = {};
-
 export const initSocket = (server, allowedOrigins) => {
   io = new Server(server, {
     cors: {
@@ -10,6 +9,7 @@ export const initSocket = (server, allowedOrigins) => {
       methods: ["GET", "POST"],
       credentials: true,
     },
+    path: "/gcrapp-socket"
   });
 
   io.on("connection", (socket) => {
@@ -17,13 +17,7 @@ export const initSocket = (server, allowedOrigins) => {
 
     // Register user
     socket.on("register", (userId) => {
-      onlineUsers[userId] = socket.id; 
-      console.log("Online users:", onlineUsers);
-    });
-
-    // Request user for calendar
-    socket.on("request", (userId) => {
-      onlineUsers[userId] = socket.id; 
+      onlineUsers[userId] = socket.id;
       console.log("Online users:", onlineUsers);
     });
 

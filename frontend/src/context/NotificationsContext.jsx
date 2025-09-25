@@ -4,7 +4,7 @@ import { useAuth } from "./AuthContext";
 import axios from "axios";
 
 const NotificationsContext = createContext();
-const socket = io(import.meta.env.VITE_SOCKET_URL, { withCredentials: true });
+const socket = io(import.meta.env.VITE_SOCKET_URL, { withCredentials: true, path:"/gcrapp-socket" });
 
 export const NotificationsProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
