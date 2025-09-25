@@ -17,7 +17,11 @@ import { useCalendar } from "../context/CalendarContext";
 import CalendarShareModal from "../components/ui/CalendarShareModal";
 import { useAuth } from "../context/AuthContext";
 
+<<<<<<< HEAD
 const Sidebar = () => {
+=======
+const Sidebar = ({ setCalendarVisibility, requests }) => {
+>>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
   const [isShareModalOpen, setIsShareModalOpen] = useState(null);
   const [calendarToBeShare, setCalendarToBeShare] = useState({});
 
@@ -71,9 +75,25 @@ const Sidebar = () => {
             : "w-80 bg-white border-r border-gray-200 p-6 flex flex-col"
         }`}
       >
-        {}
         {!isMobile ? (
           <div className="mb-6">
+<<<<<<< HEAD
+=======
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+              <MakeCalendarRequestModal />
+              <button
+                onClick={() => navigate("/requests")}
+                className="relative flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors text-sm font-medium cursor-pointer"
+              >
+                <Bell className="w-4 h-4" />
+                Requests
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {requests &&
+                    requests.filter((r) => r.status === "pending").length}
+                </span>
+              </button>
+            </div>
+>>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-semibold text-gray-900">
                 My Calendars <span>({calendars.length})</span>
@@ -136,7 +156,6 @@ const Sidebar = () => {
           </div>
         )}
 
-        {}
         {navigation === "Calendar" ? (
           <div
             className={
@@ -269,7 +288,6 @@ const Sidebar = () => {
           </div>
         ) : null}
 
-        {}
         {!isMobile && (
           <div className="mt-8 h-1/3 overflow-y-scroll">
             <h3 className="text-sm font-medium text-gray-500 mb-4">
@@ -278,7 +296,6 @@ const Sidebar = () => {
                 ({Array.isArray(sharedWithMe) ? sharedWithMe.length : 0})
               </span>
             </h3>
-            {}
             {Array.isArray(sharedWithMe) &&
               sharedWithMe.length > 0 &&
               sharedWithMe.map((cal, index) => {

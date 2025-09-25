@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [auth, setAuth] = useState(null);
   const [userId, setUserId] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [userName, setUserName] = useState("");
   const checkAuth = async () => {
     try {
       const res = await axios.get(
@@ -15,8 +16,9 @@ export const AuthProvider = ({ children }) => {
       );
       if (res.data.success) {
         setAuth(true);
-        setUserId(res.data.userId)
-        setUserEmail(res.data.userEmail)
+        setUserId(res.data.userId);
+        setUserEmail(res.data.userEmail);
+        setUserName(res.data.userName);
       } else setAuth(false);
     } catch (error) {
       setAuth(false);
@@ -34,7 +36,8 @@ export const AuthProvider = ({ children }) => {
         setAuth,
         checkAuth,
         userId,
-        userEmail
+        userEmail,
+        userName
       }}
     >
       {children}

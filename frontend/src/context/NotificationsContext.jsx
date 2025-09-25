@@ -4,7 +4,11 @@ import { useAuth } from "./AuthContext";
 import axios from "axios";
 
 const NotificationsContext = createContext();
+<<<<<<< HEAD
 const socket = io("http://localhost:3000", { withCredentials: true });
+=======
+const socket = io(import.meta.env.VITE_SOCKET_URL, { withCredentials: true, path:"/gcrapp-socket" });
+>>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
 
 export const NotificationsProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
