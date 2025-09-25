@@ -3,6 +3,7 @@ import { useNotifications } from "../../context/NotificationsContext";
 export default function NotificationsModal() {
   const { notifications, setUnreadToRead, unreadLength } = useNotifications();
 
+  
   const formatDate = (utcDate) => {
     return new Date(utcDate).toLocaleString(undefined, {
       dateStyle: "medium",
@@ -10,10 +11,6 @@ export default function NotificationsModal() {
     });
   };
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
   return (
     <div className="w-80 bg-white border border-gray-200 rounded-lg shadow-lg">
       {}
@@ -24,11 +21,7 @@ export default function NotificationsModal() {
 
       {}
       <div className="max-h-96 overflow-y-auto">
-<<<<<<< HEAD
         {notifications.length > 0 ? (
-=======
-        {notifications && notifications.length > 0 ? (
->>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
           notifications.map((notification, index) => (
             <div
               key={index}
@@ -45,13 +38,7 @@ export default function NotificationsModal() {
                 {}
                 {notification.unread && (
                   <div
-<<<<<<< HEAD
                     style={{ backgroundColor: notification.color }}
-=======
-                    style={{
-                      backgroundColor: notification.notificationId?.color,
-                    }}
->>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
                     className="w-2 h-2 rounded-full mt-2"
                   />
                 )}

@@ -19,20 +19,8 @@ export const allowedOrigins = [
   "https://joyful-llama-8e2e6c.netlify.app",
 ];
 const port = process.env.PORT || 3000;
-<<<<<<< HEAD
 
 connectDB();
-=======
- 
-(async () => {
-  try {
-    await connectDB();
-  } catch (error) {
-    console.log("DB connection failed!⚠️");
-    process.exit(1);
-  }
-})();
->>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
 
 // Middlewares
 app.use(express.json());
@@ -61,12 +49,7 @@ app.get("/check-auth", userAuth, (req, res) => {
     success: true,
     message: "User Authenticated",
     userId: payload.id,
-<<<<<<< HEAD
     userEmail: payload.email
-=======
-    userEmail: payload.email,
-    userName: payload.name
->>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
   });
 });
 

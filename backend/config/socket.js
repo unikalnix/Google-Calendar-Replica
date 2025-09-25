@@ -1,7 +1,8 @@
 import { Server } from "socket.io";
 
-let io = null;
+let io;
 let onlineUsers = {};
+
 export const initSocket = (server, allowedOrigins) => {
   io = new Server(server, {
     cors: {
@@ -9,7 +10,6 @@ export const initSocket = (server, allowedOrigins) => {
       methods: ["GET", "POST"],
       credentials: true,
     },
-    path: "/gcrapp-socket"
   });
 
   io.on("connection", (socket) => {
@@ -17,11 +17,7 @@ export const initSocket = (server, allowedOrigins) => {
 
     // Register user
     socket.on("register", (userId) => {
-<<<<<<< HEAD
       onlineUsers[userId] = socket.id; 
-=======
-      onlineUsers[userId] = socket.id;
->>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
       console.log("Online users:", onlineUsers);
     });
 

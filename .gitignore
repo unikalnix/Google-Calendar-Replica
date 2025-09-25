@@ -4,9 +4,3 @@ backend/node_modules/
 frontend/node_modules/
 # Local Netlify folder
 .netlify
-<<<<<<< HEAD
-=======
-Do's.txt
-package.json
-Procfile
->>>>>>> 4206414 (Adding a calendar request feature via socket.io. Real time updation on frontend)
