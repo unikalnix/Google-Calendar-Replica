@@ -1,14 +1,15 @@
+
 import { useState, useEffect } from "react";
 import {
   X,
   Calendar,
-  Clock,
   MapPin,
   Users,
   Repeat,
   Plus,
   ChevronDown,
   ExternalLink,
+  Clock,
 } from "lucide-react";
 
 import { useEvent } from "../../context/EventContext";
@@ -28,33 +29,31 @@ const CreateEventModal = ({
   updateEvent,
   eventId,
 }) => {
-  const toDatetimeLocal = (input) => {
-    if (!input) return "";
-    const d = typeof input === "string" ? new Date(input) : input;
-    const str = typeof input === "string" ? input : d.toISOString();
-    const hasTZ = /Z$|[+-]\d{2}:\d{2}$/.test(str);
-    if (hasTZ) {
-      const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-      return local.toISOString().slice(0, 16);
-    } else {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${y}-${m}-${day}T${hh}:${mm}`;
-    }
-  };
-
   const { calendars, sharedWithMe, getSharedCalendars } = useCalendar();
   const [title, setTitle] = useState(t ?? "");
   const [description, setDescription] = useState(d ?? "");
-  const [calendar, setCalendar] = useState(c?.name ?? (calendars[0]?.name || ""));
+  const [calendar, setCalendar] = useState("");
+
+  function toDatetimeLocal(date) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return (
+      date.getFullYear() +
+      "-" +
+      pad(date.getMonth() + 1) +
+      "-" +
+      pad(date.getDate()) +
+      "T" +
+      pad(date.getHours()) +
+      ":" +
+      pad(date.getMinutes())
+    );
+  }
+
   const [startTime, setStartTime] = useState(() =>
-    st ? toDatetimeLocal(st) : ""
+    st ? toDatetimeLocal(new Date(st)) : ""
   );
   const [endTime, setEndTime] = useState(() => {
-    if (et) return toDatetimeLocal(et);
+    if (et) return toDatetimeLocal(new Date(et));
     if (st) {
       const end = new Date(st);
       end.setHours(end.getHours() + 1);
@@ -62,7 +61,6 @@ const CreateEventModal = ({
     }
     return "";
   });
-
   const [location, setLocation] = useState(l ?? "");
   const [participants, setParticipants] = useState(p ?? []);
   const [participantName, setParticipantName] = useState("");
@@ -95,12 +93,13 @@ const CreateEventModal = ({
     const cal =
       calendars.find((c) => c.name === calendar) ||
       sharedWithMe.find((c) => c.name === calendar);
+
     return {
       title,
       description,
       calendarId: cal?._id ?? null,
-      startTime: startTime ? new Date(startTime).toISOString() : null,
-      endTime: endTime ? new Date(endTime).toISOString() : null,
+      start: startTime ? new Date(startTime).toISOString() : null,
+      end: endTime ? new Date(endTime).toISOString() : null,
       location,
       participants,
       repeat,
@@ -110,8 +109,8 @@ const CreateEventModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const eventData = getEventData();
+    console.log("Submitting Event Data:", eventData); // Debug
     setLoading(true);
     if (updateEvent) await updateEventFunc(eventData, eventId);
     else await createNewEvent(eventData);
@@ -119,24 +118,24 @@ const CreateEventModal = ({
   };
 
   useEffect(() => {
+    if (c) {
+      setCalendar(c);
+    } else if (calendars.length > 0) {
+      setCalendar(calendars[0].name);
+    }
+  }, [c, calendars]);
+
+  useEffect(() => {
     if (selectedDate) {
       const start = new Date(selectedDate);
       start.setHours(9, 0, 0, 0);
       const end = new Date(selectedDate);
       end.setHours(10, 0, 0, 0);
+
       setStartTime(toDatetimeLocal(start));
       setEndTime(toDatetimeLocal(end));
-    } else if (st) {
-      setStartTime(toDatetimeLocal(st));
-      if (et) {
-        setEndTime(toDatetimeLocal(et));
-      } else {
-        const end = new Date(st);
-        end.setHours(end.getHours() + 1);
-        setEndTime(toDatetimeLocal(end));
-      }
     }
-  }, [selectedDate, st, et]);
+  }, [selectedDate]);
 
   useEffect(() => {
     getSharedCalendars();
@@ -237,8 +236,6 @@ const CreateEventModal = ({
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
-
-          {}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -264,7 +261,6 @@ const CreateEventModal = ({
             </div>
           </div>
 
-          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <MapPin className="w-4 h-4 inline mr-1" /> Location

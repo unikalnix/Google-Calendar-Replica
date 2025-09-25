@@ -1,7 +1,8 @@
 import { Queue } from "bullmq";
+import { redisUrl } from "../config/redis.js"; 
 
 const reminderQueue = new Queue("event-reminders", {
-  connection: { url: process.env.REDIS_URL || "redis://127.0.0.1:6379" },
+  connection: { url:redisUrl },
 });
 
 async function scheduleReminderJob(event, organizerName) {

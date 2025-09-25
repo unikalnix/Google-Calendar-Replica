@@ -1,3 +1,4 @@
+
 import { verifyToken } from "../utils/token.js";
 
 async function userAuth(req, res, next) {

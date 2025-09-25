@@ -1,8 +1,9 @@
 import { useView } from "../context/ViewContext";
 import { useEvent } from "../context/EventContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
-const MonthView = () => {
+const MonthView = ({ calendarVisibility }) => {
+  const [filteredEvents, setFilteredEvents] = useState([]);
   const {
     currentYear,
     currentMonth,
@@ -18,6 +19,14 @@ const MonthView = () => {
     const currentDate = new Date(currentYear, currentMonth, 1);
     fetchEvents("month", currentDate);
   }, [currentYear, currentMonth]);
+
+  useEffect(() => {
+    setFilteredEvents(
+      events?.filter((event) =>
+        calendarVisibility.includes(String(event.calendar._id))
+      )
+    );
+  }, [calendarVisibility]);
 
   return (
     <div className="flex-1 p-2 md:p-4 lg:p-6 bg-white overflow-auto">
@@ -43,7 +52,6 @@ const MonthView = () => {
                 className="border-b border-gray-100 last:border-b-0"
               >
                 {week.map((dateObj, dayIndex) => {
-                  
                   const cellDate = new Date(
                     currentYear,
                     currentMonth,
@@ -70,7 +78,6 @@ const MonthView = () => {
                         onClick={handleClick}
                         className="h-[100px] md:h-[120px] p-1 md:p-2 flex flex-col"
                       >
-                        {}
                         <div
                           className={`text-xs md:text-sm font-medium mb-1 md:mb-2
                           ${
@@ -90,25 +97,30 @@ const MonthView = () => {
                           {dateObj.day}
                         </div>
 
-                        {}
                         <div className="flex-1 overflow-auto space-y-1">
-                          {events &&
+                          {filteredEvents &&
                             dateObj.type === "current" &&
-                            events
+                            filteredEvents
                               .filter((event) => {
-                                const eventDate = new Date(event.startTime);
-                                eventDate.setHours(0, 0, 0, 0);
+                                const eventStart = new Date(event.startTime);
+                                eventStart.setHours(0, 0, 0, 0);
+                                const eventEnd = new Date(
+                                  event.endTime || event.startTime
+                                );
+                                eventEnd.setHours(0, 0, 0, 0);
                                 return (
-                                  eventDate.getTime() === cellDate.getTime()
+                                  cellDate.getTime() >= eventStart.getTime() &&
+                                  cellDate.getTime() <= eventEnd.getTime()
                                 );
                               })
                               .map((event) => (
                                 <div
-                                style={{
-                                   backgroundColor: event.calendar?.color || "#6b7280" 
-                                }}
+                                  style={{
+                                    backgroundColor:
+                                      event.calendar?.color || "#6b7280",
+                                  }}
                                   key={event._id}
-                                  className={`text-white text-xs p-1 rounded truncate`}
+                                  className="text-white text-xs p-1 rounded truncate"
                                 >
                                   {event.title}
                                 </div>

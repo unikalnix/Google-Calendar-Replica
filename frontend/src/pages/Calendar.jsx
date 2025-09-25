@@ -31,7 +31,6 @@ const Calendar = () => {
           setEvents(res.data.events);
           setRole("Owner");
         } else {
-          console.log(res.data);
           const cal = res.data.calendar;
           setName(cal.name);
           setColor(cal.color);
@@ -75,7 +74,7 @@ const Calendar = () => {
             <h1 className="text-2xl font-semibold text-gray-900">{name}</h1>
             <div className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm font-medium">
               <Crown size={14} />
-              <span>{role?.charAt(0).toUpperCase() + role.slice(1)}</span>
+              <span>{role?.charAt(0).toUpperCase() + role?.slice(1)}</span>
             </div>
           </div>
         </div>

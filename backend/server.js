@@ -12,15 +12,23 @@ import calendarRouter from "./routes/calendar.js";
 import eventRouter from "./routes/event.js";
 import { initSocket } from "./config/socket.js";
 import http from "http";
+import requestRouter from "./routes/request.js";
 
 export const app = express();
 export const allowedOrigins = [
-  "http://localhost:5173",
-  "https://joyful-llama-8e2e6c.netlify.app",
+  process.env.PROD_CLIENT_URL,
+  process.env.VITE_CLIENT_URL,
 ];
 const port = process.env.PORT || 3000;
 
-connectDB();
+(async () => {
+  try {
+    await connectDB();
+  } catch (error) {
+    console.log("DB connection failed!⚠️");
+    process.exit(1);
+  }
+})();
 
 // Middlewares
 app.use(express.json());
@@ -49,7 +57,8 @@ app.get("/check-auth", userAuth, (req, res) => {
     success: true,
     message: "User Authenticated",
     userId: payload.id,
-    userEmail: payload.email
+    userEmail: payload.email,
+    userName: payload.name,
   });
 });
 
@@ -57,6 +66,17 @@ app.use("/api/user", userRouter);
 app.use("/api/calendar", calendarRouter);
 app.use("/api/event", eventRouter);
 app.use("/api/notification", notificationsRouter);
+app.use("/api/request", requestRouter);
+app.use((_, res, __) => {
+  res.json({ success: false, message: "Something went wrong" });
+});
+app.use((err, _, res, __) => {
+  console.error(err.stack);
+  res.json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
+});
 
 const server = http.createServer(app);
 initSocket(server, allowedOrigins);

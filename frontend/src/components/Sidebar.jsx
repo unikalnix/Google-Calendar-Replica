@@ -11,16 +11,23 @@ import {
   Share2Icon,
   Trash2,
   ExternalLink,
+  Plus,
+  Bell,
 } from "lucide-react";
+
 import { useNavigate } from "react-router-dom";
 import { useCalendar } from "../context/CalendarContext";
 import CalendarShareModal from "../components/ui/CalendarShareModal";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import axios from "axios";
+import MakeCalendarRequestModal from "./ui/MakeCalendarRequestModal";
 
-const Sidebar = () => {
+const Sidebar = ({ setCalendarVisibility, requests }) => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(null);
   const [calendarToBeShare, setCalendarToBeShare] = useState({});
-
+  const { userEmail, setAuth } = useAuth();
+  const { setToast } = useToast();
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [navigation, setNavigation] = useState("Calendar");
@@ -28,9 +35,6 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const { calendars, calErrMsg, sharedCalErrMsg, sharedWithMe, deleteCal } =
     useCalendar();
-
-  const { userEmail } = useAuth();
-
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -71,18 +75,26 @@ const Sidebar = () => {
             : "w-80 bg-white border-r border-gray-200 p-6 flex flex-col"
         }`}
       >
-        {}
         {!isMobile ? (
           <div className="mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+              <MakeCalendarRequestModal />
+              <button
+                onClick={() => navigate("/requests")}
+                className="relative flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors text-sm font-medium cursor-pointer"
+              >
+                <Bell className="w-4 h-4" />
+                Requests
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                  {requests &&
+                    requests.filter((r) => r.status === "pending").length}
+                </span>
+              </button>
+            </div>
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-semibold text-gray-900">
                 My Calendars <span>({calendars.length})</span>
               </h1>
-              <div className="flex items-center gap-4">
-                <button className="text-gray-600 hover:text-gray-900 font-medium cursor-pointer border-1 border-border px-3 py-2 rounded-md">
-                  Agenda
-                </button>
-              </div>
             </div>
           </div>
         ) : (
@@ -136,7 +148,6 @@ const Sidebar = () => {
           </div>
         )}
 
-        {}
         {navigation === "Calendar" ? (
           <div
             className={
@@ -146,11 +157,22 @@ const Sidebar = () => {
             }
           >
             {isMobile && (
-              <div className="flex justify-between items-center mb-3">
+              <div className="mb-3">
+                <div className="flex flex-row sm:flex-row items-start sm:items-center gap-3 mb-6">
+                  <MakeCalendarRequestModal />
+                  <button
+                    onClick={() => navigate("/requests")}
+                    className="relative flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Bell className="w-4 h-4" />
+                    Requests
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      2
+                    </span>
+                  </button>
+                </div>
+
                 <h3 className="font-semibold text-gray-900">My Calendars</h3>
-                <button className="text-gray-600 hover:text-gray-900 font-medium cursor-pointer border-1 border-border px-3 py-2 rounded-md">
-                  Agenda
-                </button>
               </div>
             )}
 
@@ -161,6 +183,18 @@ const Sidebar = () => {
                   className="flex justify-between py-3 px-2 rounded-lg hover:bg-hover group"
                 >
                   <div className="flex items-center">
+                    <input
+                      className="mr-4 cursor-pointer"
+                      type="checkbox"
+                      defaultChecked
+                      onChange={(e) => {
+                        setCalendarVisibility((prev) =>
+                          e.target.checked
+                            ? [...prev, String(cal._id)]
+                            : prev.filter((p) => p !== String(cal._id))
+                        );
+                      }}
+                    />
                     <div className="flex items-center">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
@@ -241,7 +275,7 @@ const Sidebar = () => {
                         </label>
                         <ExternalLink
                           onClick={() =>
-                            navigate(`/calendar/${cal._id}?type=shared`)
+                            navigate(`/calendar/${cal.calendarId}?type=shared`)
                           }
                           width={13}
                           className="ml-3 text-gray-600 hover:text-black cursor-pointer"
@@ -251,7 +285,12 @@ const Sidebar = () => {
                     <div className="flex gap-2">
                       {" "}
                       <Eye className="w-4 h-4 text-gray-400 cursor-pointer" />
-                      <Trash2 onClick={() => deleteCal(cal._id)} className="w-4 h-4 text-gray-400 cursor-pointer" />
+                      <Trash2
+                        onClick={() =>
+                          deleteCal(cal.calendarId, true, cal?.role)
+                        }
+                        className="w-4 h-4 text-gray-400 cursor-pointer"
+                      />
                     </div>
                   </div>
                 );
@@ -269,7 +308,6 @@ const Sidebar = () => {
           </div>
         ) : null}
 
-        {}
         {!isMobile && (
           <div className="mt-8 h-1/3 overflow-y-scroll">
             <h3 className="text-sm font-medium text-gray-500 mb-4">
@@ -278,7 +316,6 @@ const Sidebar = () => {
                 ({Array.isArray(sharedWithMe) ? sharedWithMe.length : 0})
               </span>
             </h3>
-            {}
             {Array.isArray(sharedWithMe) &&
               sharedWithMe.length > 0 &&
               sharedWithMe.map((cal, index) => {
@@ -298,7 +335,7 @@ const Sidebar = () => {
                         </label>
                         <ExternalLink
                           onClick={() =>
-                            navigate(`/calendar/${cal._id}?type=shared`)
+                            navigate(`/calendar/${cal.calendarId}?type=shared`)
                           }
                           width={13}
                           className="ml-3 text-gray-600 hover:text-black cursor-pointer"
@@ -308,7 +345,12 @@ const Sidebar = () => {
                     <div className="flex gap-2">
                       {" "}
                       <Eye className="w-4 h-4 text-gray-400 cursor-pointer" />
-                      <Trash2 onClick={() => deleteCal(cal._id)} className="w-4 h-4 text-gray-400 cursor-pointer" />
+                      <Trash2
+                        onClick={() =>
+                          deleteCal(cal.calendarId, true, cal?.role)
+                        }
+                        className="w-4 h-4 text-gray-400 cursor-pointer"
+                      />
                     </div>
                   </div>
                 );
@@ -321,6 +363,32 @@ const Sidebar = () => {
             )}
           </div>
         )}
+
+        <div className="sm:fixed bottom-4 left-4 flex items-center gap-3 bg-white shadow-lg rounded-lg px-4 py-3 border border-gray-200 z-50">
+          <button
+            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors font-semibold shadow cursor-pointer"
+            onClick={async () => {
+              try {
+                const res = await axios.get(
+                  `${import.meta.env.VITE_BACKEND_URL}/api/user/logout`,
+                  { withCredentials: true }
+                );
+                if (res.data.success) {
+                  setAuth(false);
+                } else {
+                  setToast(res.data.message, "error");
+                }
+              } catch (error) {
+                setToast(error.message);
+              }
+            }}
+          >
+            Logout
+          </button>
+          <h2 />
+          {userEmail.split("@")[0]}
+          <h2 />
+        </div>
       </div>
       {isShareModalOpen && (
         <CalendarShareModal

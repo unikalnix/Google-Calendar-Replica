@@ -19,7 +19,7 @@ export const EventProvider = ({ children }) => {
       );
 
       if (res.data.success) {
-        setEvents((prev) => [...prev, res.data.event]);
+        setEvents((prev) => [...(prev || []), res.data.event]);
         setFailureMessage("");
         setSuccessMessage(res.data.message);
       } else {

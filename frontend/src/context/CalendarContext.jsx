@@ -45,11 +45,11 @@ export const CalendarProvider = ({ children }) => {
     }
   };
 
-  const deleteCal = async (id) => {
+  const deleteCal = async (id, shared = false, role) => {
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/calendar/deleteOne/${id}`,
-        {},
+        {shared, role},
         { withCredentials: true }
       );
       if (res.data.success) {
@@ -70,11 +70,6 @@ export const CalendarProvider = ({ children }) => {
     getMyCalendars();
     getSharedCalendars();
   }, []);
-
-  useEffect(() => {
-    console.log("Shared with me \n", sharedWithMe);
-  }, [sharedWithMe]);
-
   return (
     <CalendarContext.Provider
       value={{

@@ -5,10 +5,57 @@ import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Calendar from "./pages/Calendar";
 import Event from "./pages/Event";
+import CalendarSharingRequests from "./pages/CalendarSharingRequests";
+import axios from "axios";
+import { useState, useEffect } from "react";
 
 const App = () => {
+  const [requests, setRequests] = useState([]);
+  const [reqHistory, setReqHistory] = useState([]);
+
+  const getRequests = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_SOCKET_URL}/api/request/getRequests`,
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        setRequests(res.data.requests.sort((a, b) => b.isRead - a.isRead));
+      } else {
+        console.log(res.data.message);
+      }
+    } catch (error) {
+      console.log(`An error occured in getRequests function: ${error.message}`);
+    }
+  };
+
+  const getReqHistory = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_SOCKET_URL}/api/request/getRequestsHistory`,
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        setReqHistory(
+          res.data.requests.sort(
+            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+          )
+        );
+      } else {
+        console.log(res.data.message);
+      }
+    } catch (error) {
+      console.log(`An error occured in getRequests function: ${error.message}`);
+    }
+  };
+
+  useEffect(() => {
+    getRequests();
+    getReqHistory();
+  }, []);
   return (
     <div>
+      dashboard
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -16,7 +63,24 @@ const App = () => {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Dashboard />
+              <Dashboard
+                requests={requests}
+                setRequests={setRequests}
+                getRequests={getRequests}
+              />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/requests"
+          element={
+            <ProtectedRoute>
+              <CalendarSharingRequests
+                requests={requests}
+                reqHistory={reqHistory}
+                setReqHistory={setReqHistory}
+                getReqHistory={getReqHistory}
+              />
             </ProtectedRoute>
           }
         />

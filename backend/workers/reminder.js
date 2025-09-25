@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 import { sendEmail } from "../utils/email/email.js";
 import { eventReminderTemplate } from "../utils/email/eventReminderTemplate.js";
+import { redisUrl } from "../config/redis.js";
 
 const reminderWorker = new Worker(
   "event-reminders",
@@ -36,7 +37,7 @@ const reminderWorker = new Worker(
     }
   },
   {
-    connection: { url: process.env.REDIS_URL || "redis://127.0.0.1:6379" },
+    connection: { url: redisUrl },
   }
 );
 

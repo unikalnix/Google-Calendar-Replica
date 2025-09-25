@@ -1,42 +1,47 @@
-import eventModel from "../models/event.js";
-import calendarModel from "../models/calendar.js";
+import { Event, EventParticipants } from "../models/event.js";
+import { Calendar } from "../models/calendar.js";
 import { sendEmail } from "../utils/email/email.js";
 import { eventInvitationTemplate } from "../utils/email/eventInvitationTemplate.js";
 import { eventCancellationTemplate } from "../utils/email/eventCancellationTemplate.js";
 import { eventUpdateTemplate } from "../utils/email/eventUpdateTemplate.js";
 import { scheduleReminderJob } from "../queues/reminder.js";
+import mongoose from "mongoose";
 
 const createEvent = async (req, res) => {
   try {
     const {
       title,
       description,
-      startTime,
-      endTime,
+      start,
+      end,
       location,
       participants,
       repeat,
+      calendarId,
       reminderMinutes,
     } = req.body;
-    const user = req.user;
-    const { _id: calendarId } = req.calendar;
 
-    if (!title || !startTime || !endTime) {
+    const user = req.payload;
+    if (!calendarId)
+      return res.json({ success: false, message: "Provide Calendar" });
+
+    if (!title || !start || !end) {
       return res.json({ success: false, message: "Required fields missing" });
     }
 
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    if (start >= end) {
-      return res.json({
-        success: false,
-        message: "Start time must be before end time",
-      });
+    const startEvent = new Date(start);
+    const endEvent = new Date(end);
+
+    if (startEvent >= endEvent) {
+      return res.json({ success: false, message: "Start must be before end" });
     }
 
-    const overlappingEvent = await eventModel.findOne({
+    const overlappingEvent = await Event.findOne({
       calendar: calendarId,
-      $or: [{ startTime: { $lt: end }, endTime: { $gt: start } }],
+      $and: [
+        { startTime: { $lt: endEvent } },
+        { endTime: { $gt: startEvent } },
+      ],
     });
 
     if (overlappingEvent) {
@@ -46,46 +51,42 @@ const createEvent = async (req, res) => {
       });
     }
 
-    const newEvent = await eventModel.create({
+    await scheduleReminderJob(
+      {
+        title,
+        description,
+        calendar: calendarId,
+        startTime: startEvent,
+        endTime: endEvent,
+        location,
+        participants,
+        repeat,
+        reminderMinutes: reminderMinutes || 0,
+        owner: user.id,
+      },
+      user.name
+    );
+
+    const newEvent = await Event.create({
       title,
       description,
       calendar: calendarId,
-      startTime: start,
-      endTime: end,
+      startTime: startEvent,
+      endTime: endEvent,
       location,
-      participants,
       repeat,
-      reminderMinutes,
-      owner: user._id,
+      reminderMinutes: reminderMinutes || 0,
+      owner: user.id,
     });
 
-    await scheduleReminderJob(newEvent, user.name);
-
-    await calendarModel.findByIdAndUpdate(calendarId, {
+    await Calendar.findByIdAndUpdate(calendarId, {
       $push: { events: newEvent._id },
     });
-
-    const emailPromises = participants.map((p) => {
-      const htmlTemplate = eventInvitationTemplate({
-        participantName: p.name,
-        organizerName: user.name,
-        title,
-        description,
-        start,
-        end,
-        location,
-      });
-
-      return sendEmail(p.email, `Invitation: ${title}`, htmlTemplate);
-    });
-
-    const responses = await Promise.all(emailPromises);
 
     res.json({
       success: true,
       message: "Event created successfully",
       event: newEvent,
-      email: responses,
     });
   } catch (err) {
     console.error(err);
@@ -96,7 +97,7 @@ const createEvent = async (req, res) => {
 const getEvents = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const user = req.user;
+    const user = req.payload;
 
     if (!startDate || !endDate) {
       return res.json({
@@ -115,16 +116,14 @@ const getEvents = async (req, res) => {
       });
     }
 
-    const events = await eventModel
-      .find({
-        owner: user._id,
-        $or: [
-          { startTime: { $gte: start, $lte: end } }, // starts inside
-          { endTime: { $gte: start, $lte: end } }, // ends inside
-          { startTime: { $lte: start }, endTime: { $gte: end } }, // spans full range
-        ],
-      })
-      .populate("calendar", "name color");
+    const events = await Event.find({
+      owner: new mongoose.Types.ObjectId(user.id),
+      $or: [
+        { startTime: { $gte: start, $lte: end } }, // starts inside
+        { endTime: { $gte: start, $lte: end } }, // ends inside
+        { startTime: { $lte: start }, endTime: { $gte: end } }, // spans full range
+      ],
+    }).populate("calendar", "name color");
 
     return res.json({
       success: true,
@@ -141,13 +140,18 @@ const getEvents = async (req, res) => {
 
 const getEvent = async (req, res) => {
   try {
-    const user = req.user;
-    const calendar = req.calendar;
-    const { eventId } = req.params;
+    const { calendarId, eventId } = req.params;
+    const user = req.payload;
+    const calendar = await Calendar.findOne({
+      _id: new mongoose.Types.ObjectId(calendarId),
+    });
 
-    const event = await eventModel.findOne({
-      calendar: calendar._id,
-      _id: eventId,
+    if (!calendar)
+      return res.json({ success: false, message: "Calendar not found" });
+
+    const event = await Event.findOne({
+      calendar: new mongoose.Types.ObjectId(calendarId),
+      _id: new mongoose.Types.ObjectId(eventId),
     });
 
     if (!event) {
@@ -163,6 +167,10 @@ const getEvent = async (req, res) => {
     eventData.owner = eventOwner;
     eventData.calendar = calendar.name;
 
+    const eventParticipants = await EventParticipants.find({
+      eventId: new mongoose.Types.ObjectId(eventId),
+    });
+    eventData.participants = eventParticipants;
     res.json({
       success: true,
       message: "Event fetched successfully",
@@ -178,40 +186,44 @@ const getEvent = async (req, res) => {
 
 const deleteEvent = async (req, res) => {
   try {
-    const calendar = req.calendar;
-    const { eventId } = req.params;
-    const user = req.user;
+    const { eventId, calendarId } = req.params;
+    const user = req.payload;
+    const calendar = await Calendar.findById(calendarId);
+    if (!calendar) {
+      return res.json({ success: false, message: "Calendar not found" });
+    }
 
-    const event = await eventModel.findOne({
-      _id: eventId,
+    const event = await Event.findOne({
+      _id: new mongoose.Types.ObjectId(eventId),
       calendar: calendar._id,
     });
-
-    if (!event)
+    if (!event) {
       return res.json({
         success: false,
         message: "Event not found or already deleted",
       });
+    }
 
-    const emailPromises = event.participants.map((p) => {
-      const htmlTemplate = eventCancellationTemplate({
-        participantName: p.name,
-        organizerName: user.name,
-        title: event.title,
-        start: event.startTime,
-        end: event.endTime,
-        location: event.location,
+    const participants = await EventParticipants.find({ eventId });
+
+    // Notify participants
+    if (participants.length > 0) {
+      const emailPromises = participants.map((p) => {
+        const htmlTemplate = eventCancellationTemplate({
+          participantName: p.name,
+          organizerName: user.name,
+          title: event.title,
+          start: event.startTime,
+          end: event.endTime,
+          location: event.location,
+        });
+        sendEmail(p.email, `Cancelled: ${event.title}`, htmlTemplate);
       });
+      Promise.all(emailPromises);
+    }
 
-      return sendEmail(p.email, `Cancelled: ${event.title}`, htmlTemplate);
-    });
-
-    await Promise.all(emailPromises);
-
+    await EventParticipants.deleteMany({ eventId });
     await event.deleteOne();
-    await calendarModel.findByIdAndUpdate(calendar._id, {
-      $pull: { events: eventId },
-    });
 
     return res.json({ success: true, message: "Event deleted" });
   } catch (error) {
@@ -223,7 +235,7 @@ const updateEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     const eventData = req.body;
-    const user = req.user;
+    const user = req.payload;
 
     if (new Date(eventData.startTime) >= new Date(eventData.endTime)) {
       return res.json({
@@ -232,7 +244,7 @@ const updateEvent = async (req, res) => {
       });
     }
 
-    const existingEvent = await eventModel.findById(eventId);
+    const existingEvent = await Event.findById(eventId);
     if (!existingEvent) {
       return res.json({ success: false, message: "Event not found" });
     }
@@ -246,7 +258,7 @@ const updateEvent = async (req, res) => {
 
     const { startTime, endTime } = eventData;
 
-    const overlappingEvent = await eventModel.findOne({
+    const overlappingEvent = await Event.findOne({
       _id: { $ne: eventId },
       calendar: existingEvent.calendar,
       startTime: { $lt: endTime },
@@ -260,22 +272,27 @@ const updateEvent = async (req, res) => {
       });
     }
 
-    const oldParticipants = existingEvent.participants.map((p) => p.email);
-    const newParticipants = eventData.participants.map((p) => p.email);
-
-    const addedParticipants = eventData.participants.filter(
-      (p) => !oldParticipants.includes(p.email)
-    );
-    const existingParticipants = eventData.participants.filter((p) =>
-      oldParticipants.includes(p.email)
-    );
-
-    const updatedEvent = await eventModel.findByIdAndUpdate(
-      eventId,
-      eventData,
-      { new: true }
-    );
+    const updatedEvent = await Event.findByIdAndUpdate(eventId, eventData, {
+      new: true,
+    });
     await scheduleReminderJob(updatedEvent, user.name);
+
+    const oldParticipants = await EventParticipants.find({ eventId }).lean(); // js object
+    const oldEmails = oldParticipants.map((p) => p.email);
+
+    const newParticipants = eventData.participants || [];
+    const addedParticipants = newParticipants.filter(
+      (p) => !oldEmails.includes(p.email)
+    );
+    const existingParticipants = newParticipants.filter((p) =>
+      oldEmails.includes(p.email)
+    );
+
+    if (addedParticipants.length > 0) {
+      await EventParticipants.insertMany(
+        addedParticipants.map((p) => ({ ...p, eventId }))
+      );
+    }
 
     const invitePromises = addedParticipants.map((p) => {
       const htmlTemplate = eventInvitationTemplate({

@@ -4,7 +4,7 @@ import { useAuth } from "./AuthContext";
 import axios from "axios";
 
 const NotificationsContext = createContext();
-const socket = io("http://localhost:3000", { withCredentials: true });
+const socket = io(import.meta.env.VITE_SOCKET_URL, { withCredentials: true, path:"/gcrapp-socket" });
 
 export const NotificationsProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
@@ -53,8 +53,6 @@ export const NotificationsProvider = ({ children }) => {
   useEffect(() => {
     setUnreadLength(notifications.filter((n) => n.unread).length);
   }, [notifications]);
-
-  useEffect(() => {}, [unreadLength]);
 
   useEffect(() => {
     if (userId) {

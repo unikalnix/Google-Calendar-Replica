@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useView } from "../context/ViewContext";
 import { useEvent } from "../context/EventContext";
@@ -12,12 +13,10 @@ const DayView = () => {
   const endHour = 23;
   const timeSlots = getTimeSlots().slice(startHour, endHour + 1);
 
-  
   useEffect(() => {
     fetchEvents("day", currentFullDate);
   }, [currentFullDate]);
 
-  
   const dayEvents = events.filter((event) => {
     const start = new Date(event.startTime);
     const end = new Date(event.endTime);
@@ -41,20 +40,20 @@ const DayView = () => {
     <div className="flex-1 overflow-auto bg-white">
       {}
       <div className="flex items-center p-3 gap-10 bg-white border-b border-gray-200 sticky top-0 z-20">
-       <div className="flex gap-3">
-         <button
-          className="p-1 hover:bg-gray-100 rounded cursor-pointer"
-          onClick={goToPrevDay}
-        >
-          <ChevronLeft className="w-5 h-5 text-gray-600" />
-        </button>
-        <button
-          className="p-1 hover:bg-gray-100 rounded cursor-pointer"
-          onClick={goToNextDay}
-        >
-          <ChevronRight className="w-5 h-5 text-gray-600" />
-        </button>
-       </div>
+        <div className="flex gap-3">
+          <button
+            className="p-1 hover:bg-gray-100 rounded cursor-pointer"
+            onClick={goToPrevDay}
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <button
+            className="p-1 hover:bg-gray-100 rounded cursor-pointer"
+            onClick={goToNextDay}
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
         <div className="mx-auto">
           <div className="text-sm text-gray-500 mb-1">{dayName}</div>
           <div className="text-2xl font-semibold text-blue-600">{fullDate}</div>
@@ -67,13 +66,15 @@ const DayView = () => {
         {timeSlots.map((time, timeIndex) => {
           const hour = timeIndex + startHour;
 
-          
           const cellEvents = dayEvents.filter((event) => {
             const start = new Date(event.startTime);
-            return (
-              start.toDateString() === currentFullDate.toDateString() &&
-              start.getHours() === hour
-            );
+            const end = new Date(event.endTime || event.startTime);
+
+            const cellStart = new Date(currentFullDate);
+            cellStart.setHours(hour, 0, 0, 0);
+            const cellEnd = new Date(currentFullDate);
+            cellEnd.setHours(hour + 1, 0, 0, 0);
+            return start < cellEnd && end > cellStart;
           });
 
           return (
@@ -93,7 +94,6 @@ const DayView = () => {
                   const start = new Date(event.startTime);
                   const end = new Date(event.endTime);
 
-                  
                   const duration =
                     (end.getTime() - start.getTime()) / (1000 * 60 * 60);
 
@@ -104,7 +104,7 @@ const DayView = () => {
                       style={{
                         top: `${(start.getMinutes() / 60) * 100}%`,
                         height: `${duration * 100}%`,
-                        backgroundColor: event.calendar.color
+                        backgroundColor: event.calendar.color,
                       }}
                     >
                       {event.title}

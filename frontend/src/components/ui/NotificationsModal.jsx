@@ -3,13 +3,13 @@ import { useNotifications } from "../../context/NotificationsContext";
 export default function NotificationsModal() {
   const { notifications, setUnreadToRead, unreadLength } = useNotifications();
 
-  
   const formatDate = (utcDate) => {
     return new Date(utcDate).toLocaleString(undefined, {
       dateStyle: "medium",
       timeStyle: "short",
     });
   };
+
 
   return (
     <div className="w-80 bg-white border border-gray-200 rounded-lg shadow-lg">
@@ -21,7 +21,7 @@ export default function NotificationsModal() {
 
       {}
       <div className="max-h-96 overflow-y-auto">
-        {notifications.length > 0 ? (
+        {notifications && notifications.length > 0 ? (
           notifications.map((notification, index) => (
             <div
               key={index}
@@ -38,7 +38,9 @@ export default function NotificationsModal() {
                 {}
                 {notification.unread && (
                   <div
-                    style={{ backgroundColor: notification.color }}
+                    style={{
+                      backgroundColor: notification.notificationId?.color,
+                    }}
                     className="w-2 h-2 rounded-full mt-2"
                   />
                 )}
@@ -47,14 +49,14 @@ export default function NotificationsModal() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2">
                     <h4 className="text-sm font-medium text-gray-900">
-                      {notification.title}
+                      {notification.notificationId.title}
                     </h4>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
-                    {notification.message}
+                    {notification.notificationId.message}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    {formatDate(notification.notifiedTime)}
+                    {formatDate(notification.notificationId.notifiedTime)}
                   </p>
                 </div>
               </div>
