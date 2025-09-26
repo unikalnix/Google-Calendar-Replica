@@ -1,7 +1,0 @@
-{
-  "name": "root",
-  "private": true,
-  "scripts": {
-    "start": "npm start --prefix backend"
-  }
-}

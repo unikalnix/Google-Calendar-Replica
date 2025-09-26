@@ -5,5 +5,3 @@ frontend/node_modules/
 # Local Netlify folder
 .netlify
 Do's.txt
-package.json
-Procfile
