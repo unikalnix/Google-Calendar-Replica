@@ -5,6 +5,7 @@ import axios from "axios";
 const CalendarContext = createContext();
 
 export const CalendarProvider = ({ children }) => {
+  console.log("CalendarProvider mounted");
   const { setToast } = useToast();
   const [calendars, setCalendars] = useState([]);
   const [calErrMsg, setCalErrMsg] = useState("");

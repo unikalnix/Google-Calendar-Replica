@@ -221,6 +221,7 @@ const deleteEvent = async (req, res) => {
   try {
     const { eventId, calendarId } = req.params;
     const user = req.payload;
+
     const calendar = await Calendar.findById(calendarId);
     if (!calendar) {
       return res.json({ success: false, message: "Calendar not found" });
@@ -237,22 +238,22 @@ const deleteEvent = async (req, res) => {
       });
     }
 
-    const participant = await EventParticipants.findOne({
-      eventId,
-      email: user.email,
-      role: { $in: [PERMISSIONS.OWNER, PERMISSIONS.EDITOR] },
-    });
-
-    if (!participant) {
-      return res.json({
-        success: false,
-        message: "You do not have permission to delete this event",
-      });
-    }
-
     const participants = await EventParticipants.find({ eventId });
 
-    if (participants.length > 0) {
+    if (participants.length > 1) {
+      const participant = await EventParticipants.findOne({
+        eventId,
+        email: user.email,
+        role: { $in: [PERMISSIONS.OWNER, PERMISSIONS.EDITOR] },
+      });
+
+      if (!participant) {
+        return res.json({
+          success: false,
+          message: "You do not have permission to delete this event",
+        });
+      }
+
       const emailPromises = participants.map((p) => {
         const htmlTemplate = eventCancellationTemplate({
           participantName: p.name,
@@ -262,9 +263,9 @@ const deleteEvent = async (req, res) => {
           end: event.endTime,
           location: event.location,
         });
-        sendEmail(p.email, `Cancelled: ${event.title}`, htmlTemplate);
+        return sendEmail(p.email, `Cancelled: ${event.title}`, htmlTemplate);
       });
-      Promise.all(emailPromises);
+      await Promise.all(emailPromises);
     }
 
     await EventParticipants.deleteMany({ eventId });
@@ -293,14 +294,20 @@ const updateEvent = async (req, res) => {
     if (!existingEvent) {
       return res.json({ success: false, message: "Event not found" });
     }
-    console.log(eventData.person.role);
-    if (
-      ![PERMISSIONS.OWNER, PERMISSIONS.EDITOR].includes(eventData?.person.role)
-    ) {
-      return res.json({
-        success: false,
-        message: "You do not have permission to update this event.",
-      });
+
+    const participants = await EventParticipants.find({ eventId }).lean();
+
+    if (participants.length > 1) {
+      const participant = participants.find((p) => p.email === user.email);
+      if (
+        !participant ||
+        ![PERMISSIONS.OWNER, PERMISSIONS.EDITOR].includes(participant.role)
+      ) {
+        return res.json({
+          success: false,
+          message: "You do not have permission to update this event.",
+        });
+      }
     }
 
     if (existingEvent.calendar.toString() !== eventData.calendarId) {
@@ -331,54 +338,58 @@ const updateEvent = async (req, res) => {
     });
     await scheduleReminderJob(updatedEvent, user.name);
 
-    const oldParticipants = await EventParticipants.find({ eventId }).lean();
-    const oldEmails = oldParticipants.map((p) => p.email);
-
-    const newParticipants = eventData.participants || [];
-    const addedParticipants = newParticipants.filter(
-      (p) => !oldEmails.includes(p.email)
-    );
-    const existingParticipants = newParticipants.filter((p) =>
-      oldEmails.includes(p.email)
-    );
-
-    if (addedParticipants.length > 0) {
-      await EventParticipants.insertMany(
-        addedParticipants.map((p) => ({ ...p, eventId }))
+    if (participants.length > 1) {
+      const oldEmails = participants.map((p) => p.email);
+      const newParticipants = eventData.participants || [];
+      const addedParticipants = newParticipants.filter(
+        (p) => !oldEmails.includes(p.email)
       );
+      const existingParticipants = newParticipants.filter((p) =>
+        oldEmails.includes(p.email)
+      );
+
+      if (addedParticipants.length > 0) {
+        await EventParticipants.insertMany(
+          addedParticipants.map((p) => ({ ...p, eventId }))
+        );
+      }
+
+      const invitePromises = addedParticipants.map((p) => {
+        const htmlTemplate = eventInvitationTemplate({
+          participantName: p.name,
+          organizerName: user.name,
+          title: updatedEvent.title,
+          description: updatedEvent.description,
+          start: updatedEvent.startTime,
+          end: updatedEvent.endTime,
+          location: updatedEvent.location,
+        });
+        return sendEmail(
+          p.email,
+          `Invitation: ${updatedEvent.title}`,
+          htmlTemplate
+        );
+      });
+
+      const updatePromises = existingParticipants.map((p) => {
+        const htmlTemplate = eventUpdateTemplate({
+          participantName: p.name,
+          organizerName: user.name,
+          title: updatedEvent.title,
+          description: updatedEvent.description,
+          start: updatedEvent.startTime,
+          end: updatedEvent.endTime,
+          location: updatedEvent.location,
+        });
+        return sendEmail(
+          p.email,
+          `Updated: ${updatedEvent.title}`,
+          htmlTemplate
+        );
+      });
+
+      await Promise.all([...invitePromises, ...updatePromises]);
     }
-
-    const invitePromises = addedParticipants.map((p) => {
-      const htmlTemplate = eventInvitationTemplate({
-        participantName: p.name,
-        organizerName: user.name,
-        title: updatedEvent.title,
-        description: updatedEvent.description,
-        start: updatedEvent.startTime,
-        end: updatedEvent.endTime,
-        location: updatedEvent.location,
-      });
-      return sendEmail(
-        p.email,
-        `Invitation: ${updatedEvent.title}`,
-        htmlTemplate
-      );
-    });
-
-    const updatePromises = existingParticipants.map((p) => {
-      const htmlTemplate = eventUpdateTemplate({
-        participantName: p.name,
-        organizerName: user.name,
-        title: updatedEvent.title,
-        description: updatedEvent.description,
-        start: updatedEvent.startTime,
-        end: updatedEvent.endTime,
-        location: updatedEvent.location,
-      });
-      return sendEmail(p.email, `Updated: ${updatedEvent.title}`, htmlTemplate);
-    });
-
-    await Promise.all([...invitePromises, ...updatePromises]);
 
     return res.json({
       success: true,

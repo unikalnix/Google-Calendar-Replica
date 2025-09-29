@@ -14,13 +14,13 @@ createRoot(document.getElementById("root")).render(
     <AuthProvider>
       <NotificationsProvider>
         <ToastProvider>
-            <EventProvider>
-          <CalendarProvider>
+          <EventProvider>
+            <CalendarProvider>
               <ViewProvider>
                 <App />
               </ViewProvider>
-          </CalendarProvider>
-            </EventProvider>
+            </CalendarProvider>
+          </EventProvider>
         </ToastProvider>
       </NotificationsProvider>
     </AuthProvider>
