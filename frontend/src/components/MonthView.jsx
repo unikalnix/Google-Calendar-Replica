@@ -21,12 +21,19 @@ const MonthView = ({ calendarVisibility }) => {
   }, [currentYear, currentMonth]);
 
   useEffect(() => {
+    if (!events) return;
+
+    if (!calendarVisibility || calendarVisibility.length === 0) {
+      setFilteredEvents(events);
+      return;
+    }
     setFilteredEvents(
-      events?.filter((event) =>
-        calendarVisibility.includes(String(event.calendar._id))
-      )
+      events.filter((event) => {
+        const calendarId = event?.calendar?._id;
+        return calendarId && calendarVisibility.includes(String(calendarId));
+      })
     );
-  }, [calendarVisibility]);
+  }, [calendarVisibility, events]);
 
   return (
     <div className="flex-1 p-2 md:p-4 lg:p-6 bg-white overflow-auto">

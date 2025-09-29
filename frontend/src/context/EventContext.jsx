@@ -11,6 +11,7 @@ export const EventProvider = ({ children }) => {
   const [selectedDate, setSelectedDate] = useState(null);
 
   const createNewEvent = async (eventData) => {
+    console.log(eventData)
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/event/create`,

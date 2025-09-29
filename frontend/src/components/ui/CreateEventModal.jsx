@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   X,
@@ -90,14 +89,19 @@ const CreateEventModal = ({
   };
 
   const getEventData = () => {
-    const cal =
-      calendars.find((c) => c.name === calendar) ||
-      sharedWithMe.find((c) => c.name === calendar);
+    const myCal = calendars.find((c) => c.name === calendar);
+    const sharedCal = sharedWithMe.find((c) => c.name === calendar);
 
     return {
       title,
       description,
-      calendarId: cal?._id ?? null,
+      calendarId: (myCal?._id || sharedCal?.calendarId) ?? null,
+      calendarName: (myCal?.name || sharedCal?.name) ?? null,
+      isShared: !!sharedCal,
+      person: {
+        role: sharedCal?.role,
+        email: sharedCal?.email,
+      },
       start: startTime ? new Date(startTime).toISOString() : null,
       end: endTime ? new Date(endTime).toISOString() : null,
       location,
@@ -126,7 +130,7 @@ const CreateEventModal = ({
   }, [c, calendars]);
 
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && !st && !et) {
       const start = new Date(selectedDate);
       start.setHours(9, 0, 0, 0);
       const end = new Date(selectedDate);
@@ -135,7 +139,7 @@ const CreateEventModal = ({
       setStartTime(toDatetimeLocal(start));
       setEndTime(toDatetimeLocal(end));
     }
-  }, [selectedDate]);
+  }, [selectedDate, st, et]);
 
   useEffect(() => {
     getSharedCalendars();

@@ -26,12 +26,15 @@ const Dashboard = ({
   const { userId } = useAuth();
   const [calendarVisibility, setCalendarVisibility] = useState([]);
 
-  useEffect(() => {
-    if (events && events.length > 0) {
-      const initialVisibility = events.map((e) => String(e.calendar._id));
-      setCalendarVisibility(initialVisibility);
-    }
-  }, [events]);
+ useEffect(() => {
+  if (events && events.length > 0) {
+    const initialVisibility = events
+      .map((e) => e?.calendar?._id) // safely access _id
+      .filter((id) => id)            // remove undefined/null
+      .map((id) => String(id));      // convert to string
+    setCalendarVisibility(initialVisibility);
+  }
+}, [events]);
 
   useEffect(() => {
     if (userId) {

@@ -1,11 +1,12 @@
 import { Event, EventParticipants } from "../models/event.js";
-import { Calendar } from "../models/calendar.js";
+import { Calendar, CalendarParticipants } from "../models/calendar.js";
 import { sendEmail } from "../utils/email/email.js";
 import { eventInvitationTemplate } from "../utils/email/eventInvitationTemplate.js";
 import { eventCancellationTemplate } from "../utils/email/eventCancellationTemplate.js";
 import { eventUpdateTemplate } from "../utils/email/eventUpdateTemplate.js";
 import { scheduleReminderJob } from "../queues/reminder.js";
 import mongoose from "mongoose";
+import { PERMISSIONS } from "../utils/permissions.js";
 
 const createEvent = async (req, res) => {
   try {
@@ -19,6 +20,8 @@ const createEvent = async (req, res) => {
       repeat,
       calendarId,
       reminderMinutes,
+      isShared,
+      person,
     } = req.body;
 
     const user = req.payload;
@@ -27,6 +30,23 @@ const createEvent = async (req, res) => {
 
     if (!title || !start || !end) {
       return res.json({ success: false, message: "Required fields missing" });
+    }
+
+    if (isShared && person?.role) {
+      if (person.role === PERMISSIONS.VIEWER) {
+        let role = person.role.charAt(0).toUpperCase() + person.role.slice(1);
+        return res.json({
+          success: false,
+          message: `${role}s cannot create events in a shared calendar`,
+        });
+      }
+      if (person.role !== PERMISSIONS.OWNER) {
+        return res.json({
+          success: false,
+          message:
+            "You do not have permission to create events in this calendar",
+        });
+      }
     }
 
     const startEvent = new Date(start);
@@ -116,12 +136,25 @@ const getEvents = async (req, res) => {
       });
     }
 
-    const events = await Event.find({
+    const ownedCalendars = await Calendar.find({
       owner: new mongoose.Types.ObjectId(user.id),
+    }).select("_id");
+
+    const sharedCalendars = await CalendarParticipants.find({
+      email: user.email,
+    }).select("calendarId role");
+
+    const calendarIds = [
+      ...ownedCalendars.map((c) => c._id),
+      ...sharedCalendars.map((p) => p.calendarId),
+    ];
+
+    const events = await Event.find({
+      calendar: { $in: calendarIds },
       $or: [
-        { startTime: { $gte: start, $lte: end } }, // starts inside
-        { endTime: { $gte: start, $lte: end } }, // ends inside
-        { startTime: { $lte: start }, endTime: { $gte: end } }, // spans full range
+        { startTime: { $gte: start, $lte: end } },
+        { endTime: { $gte: start, $lte: end } },
+        { startTime: { $lte: start }, endTime: { $gte: end } },
       ],
     }).populate("calendar", "name color");
 
@@ -204,9 +237,21 @@ const deleteEvent = async (req, res) => {
       });
     }
 
+    const participant = await EventParticipants.findOne({
+      eventId,
+      email: user.email,
+      role: { $in: [PERMISSIONS.OWNER, PERMISSIONS.EDITOR] },
+    });
+
+    if (!participant) {
+      return res.json({
+        success: false,
+        message: "You do not have permission to delete this event",
+      });
+    }
+
     const participants = await EventParticipants.find({ eventId });
 
-    // Notify participants
     if (participants.length > 0) {
       const emailPromises = participants.map((p) => {
         const htmlTemplate = eventCancellationTemplate({
@@ -248,6 +293,15 @@ const updateEvent = async (req, res) => {
     if (!existingEvent) {
       return res.json({ success: false, message: "Event not found" });
     }
+    console.log(eventData.person.role);
+    if (
+      ![PERMISSIONS.OWNER, PERMISSIONS.EDITOR].includes(eventData?.person.role)
+    ) {
+      return res.json({
+        success: false,
+        message: "You do not have permission to update this event.",
+      });
+    }
 
     if (existingEvent.calendar.toString() !== eventData.calendarId) {
       return res.json({
@@ -277,7 +331,7 @@ const updateEvent = async (req, res) => {
     });
     await scheduleReminderJob(updatedEvent, user.name);
 
-    const oldParticipants = await EventParticipants.find({ eventId }).lean(); // js object
+    const oldParticipants = await EventParticipants.find({ eventId }).lean();
     const oldEmails = oldParticipants.map((p) => p.email);
 
     const newParticipants = eventData.participants || [];

@@ -69,6 +69,8 @@ const getRequests = async (req, res) => {
     const requests = await RequestCalendar.find({
       recipientEmail: payload.email,
     });
+
+    console.log(requests)
     if (!requests)
       return res.json({ success: false, message: "Something went wrong" });
     if (requests && requests.length === 0)

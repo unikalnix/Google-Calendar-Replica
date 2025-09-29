@@ -16,7 +16,7 @@ const App = () => {
   const getRequests = async () => {
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_SOCKET_URL}/api/request/getRequests`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/request/getRequests`,
         { withCredentials: true }
       );
       if (res.data.success) {
@@ -32,7 +32,7 @@ const App = () => {
   const getReqHistory = async () => {
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_SOCKET_URL}/api/request/getRequestsHistory`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/request/getRequestsHistory`,
         { withCredentials: true }
       );
       if (res.data.success) {
@@ -53,9 +53,9 @@ const App = () => {
     getRequests();
     getReqHistory();
   }, []);
+
   return (
     <div>
-      dashboard
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
