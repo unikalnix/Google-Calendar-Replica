@@ -15,10 +15,7 @@ import http from "http";
 import requestRouter from "./routes/request.js";
 
 export const app = express();
-export const allowedOrigins = [
-  process.env.PROD_CLIENT_URL,
-  process.env.VITE_CLIENT_URL,
-];
+export const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
 const port = process.env.PORT || 3000;
 
 (async () => {
@@ -35,7 +32,15 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
@@ -44,7 +49,7 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
 });
-// app.use(limiter);
+app.use(limiter);
 
 // Endpoints
 app.get("/", (_, res) => {
