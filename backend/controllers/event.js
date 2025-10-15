@@ -71,22 +71,6 @@ const createEvent = async (req, res) => {
       });
     }
 
-    await scheduleReminderJob(
-      {
-        title,
-        description,
-        calendar: calendarId,
-        startTime: startEvent,
-        endTime: endEvent,
-        location,
-        participants,
-        repeat,
-        reminderMinutes: reminderMinutes || 0,
-        owner: user.id,
-      },
-      user.name
-    );
-
     const newEvent = await Event.create({
       title,
       description,
@@ -102,6 +86,13 @@ const createEvent = async (req, res) => {
     await Calendar.findByIdAndUpdate(calendarId, {
       $push: { events: newEvent._id },
     });
+
+
+    await scheduleReminderJob(
+      newEvent,
+      user.name
+    );
+
 
     res.json({
       success: true,

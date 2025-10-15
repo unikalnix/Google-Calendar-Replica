@@ -13,6 +13,7 @@ import eventRouter from "./routes/event.js";
 import { initSocket } from "./config/socket.js";
 import http from "http";
 import requestRouter from "./routes/request.js";
+import reminderRouter from "./routes/reminder.js";
 
 export const app = express();
 export const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
@@ -72,6 +73,7 @@ app.use("/api/calendar", calendarRouter);
 app.use("/api/event", eventRouter);
 app.use("/api/notification", notificationsRouter);
 app.use("/api/request", requestRouter);
+app.use("/api/reminder", reminderRouter);
 app.use((_, res, __) => {
   res.json({ success: false, message: "Something went wrong" });
 });

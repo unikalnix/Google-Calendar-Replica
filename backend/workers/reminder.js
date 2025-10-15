@@ -1,54 +1,40 @@
-import { Worker } from "bullmq";
+import express from "express";
 import { sendEmail } from "../utils/email/email.js";
 import { eventReminderTemplate } from "../utils/email/eventReminderTemplate.js";
-import { redisUrl } from "../config/redis.js";
 
-const reminderWorker = new Worker(
-  "event-reminders",
-  async (job) => {
-    try {
-      const { title, start, end, location, organizerName, participants } =
-        job.data;
+const router = express.Router();
 
-      if (!participants || participants.length === 0) return;
+// Upstash QStash will POST here at the scheduled time
+router.post("/worker", async (req, res) => {
+  try {
+    const { title, start, end, location, organizerName, participants } = req.body;
 
-      const htmlTemplate = eventReminderTemplate({
-        title,
-        start,
-        end,
-        location,
-        organizerName,
-      });
-
-      console.log("Worker sending...");
-      await Promise.all(
-        participants.map((p) =>
-          sendEmail(p.email, `Reminder: ${title} starts soon`, htmlTemplate)
-        )
-      );
-      console.log("Worker sent");
-
-      console.log(
-        `Reminder emails sent for "${title}" (${participants.length})`
-      );
-    } catch (err) {
-      console.error(`Job ${job.id} failed:`, err);
-      throw err;
+    if (!participants || participants.length === 0) {
+      console.log(`No participants to remind for "${title}"`);
+      return res.status(200).json({ message: "No participants" });
     }
-  },
-  {
-    connection: { url: redisUrl },
+
+    const html = eventReminderTemplate({
+      title,
+      start,
+      end,
+      location,
+      organizerName,
+    });
+
+    console.log(`🔔 Sending reminders for "${title}"...`);
+    await Promise.all(
+      participants.map((p) =>
+        sendEmail(p.email, `Reminder: ${title} starts soon`, html)
+      )
+    );
+
+    console.log(`✅ Reminder emails sent to ${participants.length} participants`);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    console.error("Reminder worker failed:", err);
+    return res.status(500).json({ error: err.message });
   }
-);
-
-reminderWorker.on("completed", (job) => {
-  console.log(`Job ${job.id} completed successfully`);
 });
 
-reminderWorker.on("failed", (job, err) => {
-  console.log(
-    `Job ${job.id} failed for eventId=${job.data.eventId}: ${err.message}`
-  );
-});
-
-export { reminderWorker };
+export default router;

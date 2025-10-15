@@ -1,15 +1,10 @@
-import { createClient } from "redis";
+import { Redis } from "@upstash/redis";
 
-const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
-
-const redisClient = createClient({ url: redisUrl });
-
-redisClient.on("error", (err) => {
-  console.error("Redis Client Error", err);
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-redisClient.connect()
-  .then(() => console.log("Connected to Redis"))
-  .catch((err) => console.error("Redis connection failed:", err));
+console.log("Connected to Upstash Redis via REST API");
 
-export { redisClient, redisUrl };
+export { redis };
