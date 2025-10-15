@@ -13,7 +13,6 @@ import eventRouter from "./routes/event.js";
 import { initSocket } from "./config/socket.js";
 import http from "http";
 import requestRouter from "./routes/request.js";
-import reminderRouter from "./routes/reminder.js";
 
 export const app = express();
 export const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
@@ -73,7 +72,6 @@ app.use("/api/calendar", calendarRouter);
 app.use("/api/event", eventRouter);
 app.use("/api/notification", notificationsRouter);
 app.use("/api/request", requestRouter);
-app.use("/api/reminder", reminderRouter);
 app.use((_, res, __) => {
   res.json({ success: false, message: "Something went wrong" });
 });
@@ -85,8 +83,14 @@ app.use((err, _, res, __) => {
   });
 });
 
-const server = http.createServer(app);
-initSocket(server, allowedOrigins);
-server.listen(port, () =>
-  console.log(`Server is running on http://localhost:${port}`)
-);
+if (process.env.NODE_ENV === "development") {
+  const server = http.createServer(app);
+  initSocket(server, allowedOrigins);
+  server.listen(port, () =>
+    console.log(`Server is running on http://localhost:${port}`)
+  );
+} else {
+  app.listen(port, () =>
+    console.log(`App is running on http://localhost:${port}`)
+  );
+}
