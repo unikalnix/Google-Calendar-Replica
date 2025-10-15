@@ -10,8 +10,6 @@ import userRouter from "./routes/user.js";
 import notificationsRouter from "./routes/notifications.js";
 import calendarRouter from "./routes/calendar.js";
 import eventRouter from "./routes/event.js";
-import { initSocket } from "./config/socket.js";
-import http from "http";
 import requestRouter from "./routes/request.js";
 
 export const app = express();
@@ -83,14 +81,7 @@ app.use((err, _, res, __) => {
   });
 });
 
-if (process.env.NODE_ENV === "development") {
-  const server = http.createServer(app);
-  initSocket(server, allowedOrigins);
-  server.listen(port, () =>
-    console.log(`Server is running on http://localhost:${port}`)
-  );
-} else {
-  app.listen(port, () =>
-    console.log(`App is running on http://localhost:${port}`)
-  );
-}
+app.listen(port, () =>
+  console.log(`App is running on http://localhost:${port}`)
+);
+
